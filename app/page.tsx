@@ -165,7 +165,7 @@ export default function Home() {
     }
 
     setMessage('再設定メールを送信中...')
-    const redirectUrl='${window.location.origin}/reset-password'
+    const redirectUrl=`${window.location.origin}/reset-password`
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: redirectUrl,
     })
