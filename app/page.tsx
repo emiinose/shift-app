@@ -18,8 +18,11 @@ export default function Home() {
 
   const presetSites = ['みなと', '佐川', 'ヨコレイ', '埠頭', '白鳥', 'Umios(コンテナ)', 'Umios(ピッキング)', 'ローソン', 'フリー']
 
-  const [adminView, setAdminView] = useState<'overview' | 'detail' | 'staff'>('overview')
-  const [selectedDate, setSelectedDate] = useState<string>('')
+  // 管理者タブ（overview: シフト管理, requests: 休み申請, staff: スタッフ一覧, detail: シフト詳細配置）
+  const [adminTab, setAdminTab] = useState<'overview' | 'requests' | 'staff' | 'detail'>('overview')
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [customDebanInput, setCustomDebanInput] = useState('')
 
@@ -31,7 +34,7 @@ export default function Home() {
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('17:00')
 
-  // カレンダー用ステート
+  // カレンダー用ステート（スタッフ用・管理者共通）
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedCalDate, setSelectedCalDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -44,7 +47,7 @@ export default function Home() {
   const [leaveRequests, setLeaveRequests] = useState<any[]>([])
   const [leaveMessage, setLeaveMessage] = useState('')
 
-  // ★ スタッフ編集モーダル用ステート ★
+  // スタッフ編集モーダル用ステート
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
   const [staffForm, setStaffForm] = useState({
     full_name: '',
@@ -162,14 +165,15 @@ export default function Home() {
     }
 
     setMessage('再設定メールを送信中...')
+    const redirectUtl='${window.location.origin}/'
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: redirectUtl,
     })
 
     if (error) {
       setMessage(`送信エラー: ${error.message}`)
     } else {
-      setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
+      setMessage('パスワード再設定用メールを送信しました。')
     }
   }
 
@@ -180,7 +184,7 @@ export default function Home() {
   const handleOpenDetail = (dateStr: string, siteName: string) => {
     setSelectedDate(dateStr)
     setSelectedSite(siteName)
-    setAdminView('detail')
+    setAdminTab('detail')
   }
 
   const handleUpdateRequirement = async (dateStr: string, siteName: string, newCount: number) => {
@@ -284,7 +288,6 @@ export default function Home() {
     }
   }
 
-  // ★ スタッフ詳細カードタップ処理 ★
   const handleOpenStaffModal = (user: any) => {
     setSelectedStaff(user)
     setStaffForm({
@@ -299,7 +302,6 @@ export default function Home() {
     setStaffSaveMsg('')
   }
 
-  // ★ スタッフ情報更新処理 ★
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedStaff) return
@@ -327,20 +329,6 @@ export default function Home() {
         setSelectedStaff(null)
       }, 1000)
     }
-  }
-
-  const getNextSevenDays = () => {
-    const days = []
-    const today = new Date()
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(today)
-      d.setDate(today.getDate() + i)
-      const dateStr = d.toISOString().split('T')[0]
-      const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
-      const formatted = `${d.getMonth() + 1}/${d.getDate()}(${dayOfWeek})`
-      days.push({ dateStr, formatted })
-    }
-    return days
   }
 
   const isJapaneseHoliday = (y: number, m: number, d: number) => {
@@ -401,6 +389,8 @@ export default function Home() {
   const myShifts = shifts.filter(s => s.user_id === session?.user?.id)
   const selectedDayShifts = myShifts.filter(s => s.work_date === selectedCalDate)
   const myLeaveRequests = leaveRequests.filter(l => l.user_id === session?.user?.id)
+
+  const pendingLeaveCount = leaveRequests.filter(r => r.status === 'pending').length
 
   if (session) {
     return (
@@ -587,253 +577,337 @@ export default function Home() {
 
         {/* 管理者モード */}
         {userRole === 'admin' && (
-          <div className="w-full max-w-2xl space-y-6">
-            {/* ナビゲーションタブ */}
-            <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-hidden">
+          <div className="w-full max-w-2xl space-y-4">
+            {/* ナビゲーションタブ (3つに拡張) */}
+            <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-hidden shadow-sm">
               <button
-                onClick={() => setAdminView('overview')}
+                onClick={() => setAdminTab('overview')}
                 className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition ${
-                  adminView === 'overview' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  adminTab === 'overview' || adminTab === 'detail'
+                    ? 'border-purple-600 text-purple-600 bg-purple-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                📅 シフト全体管理
+                📅 シフト管理
               </button>
               <button
-                onClick={() => setAdminView('staff')}
+                onClick={() => setAdminTab('requests')}
+                className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition relative ${
+                  adminTab === 'requests'
+                    ? 'border-purple-600 text-purple-600 bg-purple-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                📩 休み申請一覧
+                {pendingLeaveCount > 0 && (
+                  <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">
+                    {pendingLeaveCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setAdminTab('staff')}
                 className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition ${
-                  adminView === 'staff' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  adminTab === 'staff'
+                    ? 'border-purple-600 text-purple-600 bg-purple-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 👥 スタッフ一覧・詳細
               </button>
             </div>
 
-            {/* 届いた休み申請一覧 */}
-            <div className="bg-white p-6 rounded-b-lg shadow space-y-4">
-              <h2 className="text-md font-bold text-gray-800 border-b pb-2 flex items-center justify-between">
-                <span>📩 届いた休み申請一覧</span>
-                <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
-                  未処理: {leaveRequests.filter(r => r.status === 'pending').length}件
-                </span>
-              </h2>
-
-              {leaveRequests.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">休み申請はありません</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-700 border-b">
-                        <th className="p-2">スタッフ</th>
-                        <th className="p-2">希望日</th>
-                        <th className="p-2">現場名</th>
-                        <th className="p-2">メッセージ</th>
-                        <th className="p-2 text-center">状態</th>
-                        <th className="p-2 text-center">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leaveRequests.map(req => (
-                        <tr key={req.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 font-bold text-gray-800">{req.user_email}</td>
-                          <td className="p-2 font-bold text-blue-600">{req.leave_date}</td>
-                          <td className="p-2 text-gray-700">{req.site_name}</td>
-                          <td className="p-2 text-gray-500">{req.reason || '-'}</td>
-                          <td className="p-2 text-center">
-                            <span className={`px-2 py-0.5 rounded font-bold ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {req.status === 'approved' ? '許可済み' : '未許可'}
-                            </span>
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                              className={`px-3 py-1 rounded text-xs font-bold transition ${
-                                req.status === 'approved'
-                                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                  : 'bg-green-600 text-white hover:bg-green-700'
-                              }`}
-                            >
-                              {req.status === 'approved' ? '未許可に戻す' : '許可する'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* View 1: シフト全体管理 */}
-            {adminView === 'overview' && (
-              <div className="bg-white p-6 rounded-lg shadow space-y-6">
-                <div className="border-b pb-2 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-gray-800">シフト全体確認</h2>
-                  <span className="text-xs text-gray-500">※数字を変更すると即座に更新されます</span>
-                </div>
-
-                {getNextSevenDays().map(({ dateStr, formatted }) => {
-                  const customDebanSites = Array.from(new Set([
-                    ...requirements.filter(r => r.work_date === dateStr && r.site_name.includes('デバン')).map(r => r.site_name),
-                    ...shifts.filter(s => s.work_date === dateStr && s.site_name.includes('デバン')).map(s => s.site_name)
-                  ]))
-
-                  const currentSites = [...presetSites, ...customDebanSites]
-
-                  return (
-                    <div key={dateStr} className="border-b pb-4">
-                      <h3 className="font-bold text-blue-600 text-md mb-2">{formatted}</h3>
-                      <div className="space-y-2 pl-2">
-                        {currentSites.map(site => {
-                          const assignedCount = shifts.filter(s => s.work_date === dateStr && s.site_name === site).length
-                          const req = requirements.find(r => r.work_date === dateStr && r.site_name === site)
-                          const reqTotal = req ? req.required_count : (site.includes('デバン') ? 1 : 3)
-                          const remaining = reqTotal - assignedCount
-
-                          return (
-                            <div
-                              key={site}
-                              className="flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 border rounded transition"
-                            >
-                              <button
-                                onClick={() => handleOpenDetail(dateStr, site)}
-                                className="font-bold text-gray-800 hover:text-blue-600 text-left underline"
-                              >
-                                {site}
-                              </button>
-
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1 text-xs text-gray-600">
-                                  <span>必要:</span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={reqTotal}
-                                    onChange={(e) => handleUpdateRequirement(dateStr, site, Number(e.target.value))}
-                                    className="w-12 p-1 border rounded text-center text-gray-800 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                  <span>人</span>
-                                </div>
-
-                                <span
-                                  onClick={() => handleOpenDetail(dateStr, site)}
-                                  className={`text-sm font-bold cursor-pointer ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}`}
-                                >
-                                  {remaining <= 0 ? '充足完了' : `あと ${remaining} 人必要`}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-
-                        <div className="flex items-center gap-2 pt-2">
-                          <input
-                            type="text"
-                            placeholder="デバンの現場名・手動入力（例: デバンA）"
-                            value={customDebanInput}
-                            onChange={(e) => setCustomDebanInput(e.target.value)}
-                            className="flex-1 p-2 border rounded text-xs text-gray-800"
-                          />
-                          <button
-                            onClick={() => handleAddCustomDeban(dateStr)}
-                            className="bg-purple-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-purple-700"
-                          >
-                            デバン追加
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* View 2: シフト詳細配置 */}
-            {adminView === 'detail' && (
-              <div className="bg-white p-6 rounded-lg shadow space-y-6">
-                <div className="flex items-center gap-4 border-b pb-3">
-                  <button
-                    onClick={() => setAdminView('overview')}
-                    className="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-bold rounded hover:bg-gray-300"
-                  >
-                    &lt; 一覧に戻る
-                  </button>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    {selectedDate} {selectedSite}
-                  </h2>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-gray-700 mb-2">配置スタッフ一覧</h3>
-                  {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).length === 0 ? (
-                    <p className="text-sm text-gray-400 py-2">配置されたスタッフはいません</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).map(s => {
-                        const user = allUsers.find(u => u.id === s.user_id)
-                        return (
-                          <div key={s.id} className="flex justify-between items-center p-3 border rounded bg-white">
-                            <span className="font-bold text-gray-800">{user?.full_name ? `${user.full_name} (${user.email})` : (user?.email || s.user_id)}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
-                              <button
-                                onClick={() => handleDeleteShift(s.id)}
-                                className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                              >
-                                削除
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <form onSubmit={handleAddStaff} className="border-t pt-4 space-y-3">
-                  <h3 className="font-bold text-gray-700">スタッフを追加</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <select
-                      value={targetUserId}
-                      onChange={(e) => setTargetUserId(e.target.value)}
-                      className="p-2 border rounded text-gray-800 text-sm"
-                    >
-                      <option value="">スタッフを選択...</option>
-                      {allUsers.map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.full_name ? `${u.full_name} (${u.email})` : u.email}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="p-2 border rounded text-gray-800 text-sm"
-                    />
-                    <input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="p-2 border rounded text-gray-800 text-sm"
-                    />
+            {/* Tab 1: シフト管理 (カレンダー + 過去・未来シフト閲覧) */}
+            {(adminTab === 'overview' || adminTab === 'detail') && (
+              <div className="space-y-4">
+                {/* カレンダー設置（過去の日付も自由に選択可能） */}
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <div className="flex justify-between items-center mb-4">
+                    <button onClick={() => changeMonth(-1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-bold hover:bg-gray-300">
+                      &lt; 前月
+                    </button>
+                    <h2 className="text-sm font-bold text-gray-800">
+                      日付選択: {year}年 {month + 1}月
+                    </h2>
+                    <button onClick={() => changeMonth(1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-bold hover:bg-gray-300">
+                      次月 &gt;
+                    </button>
                   </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 text-sm"
-                  >
-                    この現場に追加する
-                  </button>
-                </form>
+
+                  <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2">
+                    <div className="text-red-500">日</div>
+                    <div className="text-gray-500">月</div>
+                    <div className="text-gray-500">火</div>
+                    <div className="text-gray-500">水</div>
+                    <div className="text-gray-500">木</div>
+                    <div className="text-gray-500">金</div>
+                    <div className="text-blue-500">土</div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((item, idx) => {
+                      if (!item) return <div key={`admin-empty-${idx}`} className="h-10 bg-gray-50 rounded"></div>
+
+                      const isSelected = selectedDate === item.dateStr
+                      const hasShiftData = shifts.some(s => s.work_date === item.dateStr)
+
+                      let textColor = 'text-gray-700'
+                      if (item.dayOfWeek === 0 || item.isHoliday) {
+                        textColor = 'text-red-500 font-bold'
+                      } else if (item.dayOfWeek === 6) {
+                        textColor = 'text-blue-500 font-bold'
+                      }
+
+                      return (
+                        <button
+                          key={`admin-${item.dateStr}`}
+                          onClick={() => {
+                            setSelectedDate(item.dateStr)
+                            if (adminTab === 'detail') setAdminTab('overview')
+                          }}
+                          className={`h-10 flex flex-col items-center justify-between p-1 rounded border text-xs transition ${
+                            isSelected
+                              ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-400 font-bold'
+                              : 'border-gray-200 bg-white hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className={textColor}>{item.day}</span>
+                          {hasShiftData && <span className="w-1.5 h-1.5 rounded-full bg-purple-600 mb-0.5"></span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* View 1-A: 選択した日付のシフト一覧確認 */}
+                {adminTab === 'overview' && (
+                  <div className="bg-white p-6 rounded-lg shadow space-y-6">
+                    <div className="border-b pb-2 flex justify-between items-center">
+                      <h2 className="text-md font-bold text-purple-900">
+                        📅 {selectedDate} のシフト状況
+                      </h2>
+                      <span className="text-xs text-gray-500">※数字変更で即座更新</span>
+                    </div>
+
+                    {(() => {
+                      const customDebanSites = Array.from(new Set([
+                        ...requirements.filter(r => r.work_date === selectedDate && r.site_name.includes('デバン')).map(r => r.site_name),
+                        ...shifts.filter(s => s.work_date === selectedDate && s.site_name.includes('デバン')).map(s => s.site_name)
+                      ]))
+
+                      const currentSites = [...presetSites, ...customDebanSites]
+
+                      return (
+                        <div className="space-y-2">
+                          {currentSites.map(site => {
+                            const assignedCount = shifts.filter(s => s.work_date === selectedDate && s.site_name === site).length
+                            const req = requirements.find(r => r.work_date === selectedDate && r.site_name === site)
+                            const reqTotal = req ? req.required_count : (site.includes('デバン') ? 1 : 3)
+                            const remaining = reqTotal - assignedCount
+
+                            return (
+                              <div
+                                key={site}
+                                className="flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 border rounded transition"
+                              >
+                                <button
+                                  onClick={() => handleOpenDetail(selectedDate, site)}
+                                  className="font-bold text-gray-800 hover:text-purple-600 text-left underline text-xs"
+                                >
+                                  {site} ({assignedCount}名配置済)
+                                </button>
+
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <span>必要:</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={reqTotal}
+                                      onChange={(e) => handleUpdateRequirement(selectedDate, site, Number(e.target.value))}
+                                      className="w-12 p-1 border rounded text-center text-gray-800 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <span>人</span>
+                                  </div>
+
+                                  <span
+                                    onClick={() => handleOpenDetail(selectedDate, site)}
+                                    className={`text-xs font-bold cursor-pointer ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}`}
+                                  >
+                                    {remaining <= 0 ? '充足' : `あと ${remaining} 人`}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })}
+
+                          <div className="flex items-center gap-2 pt-3">
+                            <input
+                              type="text"
+                              placeholder="デバンの現場名・手動入力（例: デバンA）"
+                              value={customDebanInput}
+                              onChange={(e) => setCustomDebanInput(e.target.value)}
+                              className="flex-1 p-2 border rounded text-xs text-gray-800"
+                            />
+                            <button
+                              onClick={() => handleAddCustomDeban(selectedDate)}
+                              className="bg-purple-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-purple-700"
+                            >
+                              デバン追加
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* View 1-B: シフト詳細配置画面 */}
+                {adminTab === 'detail' && (
+                  <div className="bg-white p-6 rounded-lg shadow space-y-6">
+                    <div className="flex items-center gap-4 border-b pb-3">
+                      <button
+                        onClick={() => setAdminTab('overview')}
+                        className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded hover:bg-gray-300"
+                      >
+                        &lt; 戻る
+                      </button>
+                      <h2 className="text-md font-bold text-gray-800">
+                        {selectedDate} 【{selectedSite}】
+                      </h2>
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-gray-700 text-xs mb-2">配置スタッフ一覧</h3>
+                      {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).length === 0 ? (
+                        <p className="text-xs text-gray-400 py-2">配置されたスタッフはいません</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).map(s => {
+                            const user = allUsers.find(u => u.id === s.user_id)
+                            return (
+                              <div key={s.id} className="flex justify-between items-center p-3 border rounded bg-white text-xs">
+                                <span className="font-bold text-gray-800">{user?.full_name ? `${user.full_name} (${user.email})` : (user?.email || s.user_id)}</span>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
+                                  <button
+                                    onClick={() => handleDeleteShift(s.id)}
+                                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 font-bold"
+                                  >
+                                    削除
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <form onSubmit={handleAddStaff} className="border-t pt-4 space-y-3">
+                      <h3 className="font-bold text-gray-700 text-xs">スタッフを追加</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <select
+                          value={targetUserId}
+                          onChange={(e) => setTargetUserId(e.target.value)}
+                          className="p-2 border rounded text-gray-800 text-xs"
+                        >
+                          <option value="">スタッフを選択...</option>
+                          {allUsers.map(u => (
+                            <option key={u.id} value={u.id}>
+                              {u.full_name ? `${u.full_name} (${u.email})` : u.email}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="p-2 border rounded text-gray-800 text-xs"
+                        />
+                        <input
+                          type="time"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          className="p-2 border rounded text-gray-800 text-xs"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 text-xs shadow"
+                      >
+                        この現場に追加する
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* ★ View 3: スタッフ一覧・編集機能 ★ */}
-            {adminView === 'staff' && (
+            {/* Tab 2: 独立した「届いた休み申請一覧」 */}
+            {adminTab === 'requests' && (
+              <div className="bg-white p-6 rounded-lg shadow space-y-4">
+                <h2 className="text-md font-bold text-gray-800 border-b pb-2 flex items-center justify-between">
+                  <span>📩 届いた休み申請一覧</span>
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
+                    未処理: {pendingLeaveCount}件
+                  </span>
+                </h2>
+
+                {leaveRequests.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">休み申請はありません</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100 text-gray-700 border-b">
+                          <th className="p-2">スタッフ</th>
+                          <th className="p-2">希望日</th>
+                          <th className="p-2">現場名</th>
+                          <th className="p-2">メッセージ</th>
+                          <th className="p-2 text-center">状態</th>
+                          <th className="p-2 text-center">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leaveRequests.map(req => (
+                          <tr key={req.id} className="border-b hover:bg-gray-50">
+                            <td className="p-2 font-bold text-gray-800">{req.user_email}</td>
+                            <td className="p-2 font-bold text-blue-600">{req.leave_date}</td>
+                            <td className="p-2 text-gray-700">{req.site_name}</td>
+                            <td className="p-2 text-gray-500">{req.reason || '-'}</td>
+                            <td className="p-2 text-center">
+                              <span className={`px-2 py-0.5 rounded font-bold ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {req.status === 'approved' ? '許可済み' : '未許可'}
+                              </span>
+                            </td>
+                            <td className="p-2 text-center">
+                              <button
+                                onClick={() => handleToggleLeaveStatus(req.id, req.status)}
+                                className={`px-3 py-1 rounded text-xs font-bold transition ${
+                                  req.status === 'approved'
+                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    : 'bg-green-600 text-white hover:bg-green-700'
+                                }`}
+                              >
+                                {req.status === 'approved' ? '未許可に戻す' : '許可する'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab 3: スタッフ一覧・詳細機能 */}
+            {adminTab === 'staff' && (
               <div className="bg-white p-6 rounded-lg shadow space-y-4">
                 <div className="flex justify-between items-center border-b pb-3">
                   <h2 className="text-lg font-bold text-gray-800">👥 スタッフ一覧</h2>
-                  <span className="text-xs text-gray-500">名前カードをタップすると詳細・編集ができます</span>
+                  <span className="text-xs text-gray-500">名前カードをタップして詳細編集</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -866,7 +940,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ★ スタッフ詳細・編集 モーダル ★ */}
+        {/* スタッフ詳細・編集 モーダル */}
         {selectedStaff && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
