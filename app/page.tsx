@@ -31,7 +31,7 @@ export default function Home() {
   const [requirements, setRequirements] = useState<any[]>([])
 
   const [targetUserId, setTargetUserId] = useState('')
-  const [startTime, setStartTime] = useState('08:00')
+  const [startTime, setStartTime] = useState('08:30')
   const [endTime, setEndTime] = useState('17:00')
 
   // カレンダー用ステート（スタッフ用・管理者共通）
@@ -165,9 +165,9 @@ export default function Home() {
     }
 
     setMessage('再設定メールを送信中...')
-    const redirectUtl='${window.location.origin}/reset-password'
+    const redirectUrl='${window.location.origin}/reset-password'
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: redirectUtl,
+      redirectTo: redirectUrl,
     })
 
     if (error) {
