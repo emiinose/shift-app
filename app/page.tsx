@@ -3,6 +3,92 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation' 
 import { supabase } from './lib/supabase'
+import { createClient } from '@/utils/supabase/client'
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // Supabaseクライアントの初期化
+  const supabase = createClient()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault() // 送信時のページリロードを防止
+    setLoading(true)
+    setMessage('ログイン処理中...')
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      })
+
+      if (error) {
+        setMessage(`ログインエラー: ${error.message}`)
+        setLoading(false)
+      } else if (data.session) {
+        setMessage('ログイン成功！移動します...')
+        
+        // ポイント: Cookieと認証状態を確実に反映させるため、window.location.href でフルリロード遷移
+        window.location.href = '/' // ※遷移先のパスに合わせて調整してください（例: '/staff' など）
+      }
+    } catch (err: any) {
+      setMessage(`エラーが発生しました: ${err.message}`)
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
+        <h1 className="text-xl font-bold text-center text-gray-800">ログイン</h1>
+        
+        {/* onSubmit を必ず指定 */}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス</label>
+            <input
+              type="email"
+              required
+              placeholder="example@mail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">パスワード</label>
+            <input
+              type="password"
+              required
+              placeholder="パスワード"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm shadow transition disabled:bg-gray-400"
+          >
+            {loading ? 'ログイン中...' : 'ログイン'}
+          </button>
+        </form>
+
+        {message && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-gray-800 font-bold text-center">
+            {message}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
   const router = useRouter()
