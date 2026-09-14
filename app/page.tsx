@@ -63,22 +63,22 @@ export default function Home() {
   })
   const [staffSaveMsg, setStaffSaveMsg] = useState('')
 
- useEffect(() => {
-  // ① URLのハッシュに recovery が含まれている場合は /reset-password にリダイレクトして終了
-  if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
-    router.push('/reset-password' + window.location.hash)
-    return
-  }
-
-  // ② 既存のログイン状態チェックとデータ読み込み
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    setSession(session)
-    if (session) {
-      fetchUserProfile(session.user.id)
-      loadAllData()
+  useEffect(() => {
+    // ① URLのハッシュに recovery が含まれている場合は /reset-password にリダイレクトして終了
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      router.push('/reset-password' + window.location.hash)
+      return
     }
-  })
-}, [router])
+
+    // ② 既存のログイン状態チェックとデータ読み込み
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) {
+        fetchUserProfile(session.user.id)
+        loadAllData()
+      }
+    })
+  }, [router])
 
   const fetchUserProfile = async (userId: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
@@ -160,28 +160,28 @@ export default function Home() {
     }
   }
 
-const handlePasswordReset = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!email) {
-    setMessage('メールアドレスを入力してください')
-    return
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      setMessage('メールアドレスを入力してください')
+      return
+    }
+
+    setMessage('再設定メールを送信中...')
+    
+    // 正しいリダイレクト先を設定
+    const redirectUrl = `${window.location.origin}/reset-password`
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: redirectUrl,
+    })
+
+    if (error) {
+      setMessage(`送信エラー: ${error.message}`)
+    } else {
+      setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
+    }
   }
-
-  setMessage('再設定メールを送信中...')
-  
-  // 正しいリダイレクト先を設定
-  const redirectUrl = `${window.location.origin}/reset-password`
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-    redirectTo: redirectUrl,
-  })
-
-  if (error) {
-    setMessage(`送信エラー: ${error.message}`)
-  } else {
-    setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
-  }
-}
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
