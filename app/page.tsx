@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation' 
 import { supabase } from './lib/supabase'
 
 export default function Home() {
+  const router = useRouter()
   const [session, setSession] = useState<any>(null)
   const [userRole, setUserRole] = useState<'admin' | 'employee'>('employee')
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   // 認証用ステート
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'reset'>('login')
@@ -31,7 +34,7 @@ export default function Home() {
   const [requirements, setRequirements] = useState<any[]>([])
 
   const [targetUserId, setTargetUserId] = useState('')
-  const [startTime, setStartTime] = useState('08:30')
+  const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('17:00')
 
   // カレンダー用ステート（スタッフ用・管理者共通）
@@ -60,29 +63,29 @@ export default function Home() {
   })
   const [staffSaveMsg, setStaffSaveMsg] = useState('')
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        fetchUserProfile(session.user.id)
-        loadAllData()
-      }
-    })
+ useEffect(() => {
+  // ① URLのハッシュに recovery が含まれている場合は /reset-password にリダイレクトして終了
+  if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+    router.push('/reset-password' + window.location.hash)
+    return
+  }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session) {
-        fetchUserProfile(session.user.id)
-        loadAllData()
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  // ② 既存のログイン状態チェックとデータ読み込み
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setSession(session)
+    if (session) {
+      fetchUserProfile(session.user.id)
+      loadAllData()
+    }
+  })
+}, [router])
 
   const fetchUserProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    if (data) setUserRole(data.role as 'admin' | 'employee')
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (data) {
+      setUserProfile(data)
+      setUserRole(data.role as 'admin' | 'employee')
+    }
   }
 
   const loadAllData = async () => {
@@ -157,25 +160,28 @@ export default function Home() {
     }
   }
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) {
-      setMessage('メールアドレスを入力してください')
-      return
-    }
-
-    setMessage('再設定メールを送信中...')
-
-    // 💡 redirectTo オプションをあえて指定しない
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim())
-
-    if (error) {
-      setMessage(`送信エラー: ${error.message}`)
-    } else {
-      setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
-    }
+const handlePasswordReset = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!email) {
+    setMessage('メールアドレスを入力してください')
+    return
   }
+
+  setMessage('再設定メールを送信中...')
   
+  // 正しいリダイレクト先を設定
+  const redirectUrl = `${window.location.origin}/reset-password`
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: redirectUrl,
+  })
+
+  if (error) {
+    setMessage(`送信エラー: ${error.message}`)
+  } else {
+    setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
+  }
+}
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -393,6 +399,8 @@ export default function Home() {
   const pendingLeaveCount = leaveRequests.filter(r => r.status === 'pending').length
 
   if (session) {
+    const currentUserName = userProfile?.full_name || session.user.email
+
     return (
       <div className="min-h-screen p-4 bg-gray-100 flex flex-col items-center">
         {/* ヘッダー */}
@@ -498,11 +506,11 @@ export default function Home() {
 
               <form onSubmit={handleSendLeaveRequest} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">名前（メールアドレス）</label>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">申請者（名前・メールアドレス）</label>
                   <input
                     type="text"
                     disabled
-                    value={session.user.email}
+                    value={`${currentUserName} (${session.user.email})`}
                     className="w-full p-2 border rounded text-xs bg-gray-100 text-gray-600 font-bold"
                   />
                 </div>
@@ -578,7 +586,7 @@ export default function Home() {
         {/* 管理者モード */}
         {userRole === 'admin' && (
           <div className="w-full max-w-2xl space-y-4">
-            {/* ナビゲーションタブ (3つに拡張) */}
+            {/* ナビゲーションタブ */}
             <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-hidden shadow-sm">
               <button
                 onClick={() => setAdminTab('overview')}
@@ -620,7 +628,7 @@ export default function Home() {
             {/* Tab 1: シフト管理 (カレンダー + 過去・未来シフト閲覧) */}
             {(adminTab === 'overview' || adminTab === 'detail') && (
               <div className="space-y-4">
-                {/* カレンダー設置（過去の日付も自由に選択可能） */}
+                {/* カレンダー設置 */}
                 <div className="bg-white p-4 rounded-lg shadow">
                   <div className="flex justify-between items-center mb-4">
                     <button onClick={() => changeMonth(-1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-bold hover:bg-gray-300">
@@ -785,9 +793,10 @@ export default function Home() {
                         <div className="space-y-2">
                           {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).map(s => {
                             const user = allUsers.find(u => u.id === s.user_id)
+                            const displayName = user?.full_name ? `${user.full_name} (${user.email || 'メール未設定'})` : (user?.email || s.user_id)
                             return (
                               <div key={s.id} className="flex justify-between items-center p-3 border rounded bg-white text-xs">
-                                <span className="font-bold text-gray-800">{user?.full_name ? `${user.full_name} (${user.email})` : (user?.email || s.user_id)}</span>
+                                <span className="font-bold text-gray-800">{displayName}</span>
                                 <div className="flex items-center gap-3">
                                   <span className="text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
                                   <button
@@ -815,7 +824,7 @@ export default function Home() {
                           <option value="">スタッフを選択...</option>
                           {allUsers.map(u => (
                             <option key={u.id} value={u.id}>
-                              {u.full_name ? `${u.full_name} (${u.email})` : u.email}
+                              {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
                             </option>
                           ))}
                         </select>
@@ -870,31 +879,38 @@ export default function Home() {
                         </tr>
                       </thead>
                       <tbody>
-                        {leaveRequests.map(req => (
-                          <tr key={req.id} className="border-b hover:bg-gray-50">
-                            <td className="p-2 font-bold text-gray-800">{req.user_email}</td>
-                            <td className="p-2 font-bold text-blue-600">{req.leave_date}</td>
-                            <td className="p-2 text-gray-700">{req.site_name}</td>
-                            <td className="p-2 text-gray-500">{req.reason || '-'}</td>
-                            <td className="p-2 text-center">
-                              <span className={`px-2 py-0.5 rounded font-bold ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                {req.status === 'approved' ? '許可済み' : '未許可'}
-                              </span>
-                            </td>
-                            <td className="p-2 text-center">
-                              <button
-                                onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                                className={`px-3 py-1 rounded text-xs font-bold transition ${
-                                  req.status === 'approved'
-                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    : 'bg-green-600 text-white hover:bg-green-700'
-                                }`}
-                              >
-                                {req.status === 'approved' ? '未許可に戻す' : '許可する'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {leaveRequests.map(req => {
+                          const applicant = allUsers.find(u => u.id === req.user_id)
+                          const applicantLabel = applicant?.full_name 
+                            ? `${applicant.full_name} (${req.user_email || applicant.email || ''})` 
+                            : (req.user_email || '不明')
+
+                          return (
+                            <tr key={req.id} className="border-b hover:bg-gray-50">
+                              <td className="p-2 font-bold text-gray-800">{applicantLabel}</td>
+                              <td className="p-2 font-bold text-blue-600">{req.leave_date}</td>
+                              <td className="p-2 text-gray-700">{req.site_name}</td>
+                              <td className="p-2 text-gray-500">{req.reason || '-'}</td>
+                              <td className="p-2 text-center">
+                                <span className={`px-2 py-0.5 rounded font-bold ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                  {req.status === 'approved' ? '許可済み' : '未許可'}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  onClick={() => handleToggleLeaveStatus(req.id, req.status)}
+                                  className={`px-3 py-1 rounded text-xs font-bold transition ${
+                                    req.status === 'approved'
+                                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                      : 'bg-green-600 text-white hover:bg-green-700'
+                                  }`}
+                                >
+                                  {req.status === 'approved' ? '未許可に戻す' : '許可する'}
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -924,7 +940,7 @@ export default function Home() {
                             <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">管理者</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{u.email}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{u.email || 'メール未設定'}</p>
                         {u.visa_status && (
                           <span className="inline-block mt-2 text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">
                             {u.visa_status}
@@ -960,7 +976,7 @@ export default function Home() {
                   <input
                     type="text"
                     disabled
-                    value={selectedStaff.email}
+                    value={selectedStaff.email || '未登録'}
                     className="w-full p-2 border rounded bg-gray-100 text-gray-500 font-bold"
                   />
                 </div>
