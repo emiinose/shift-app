@@ -365,72 +365,77 @@ export default function Home() {
             </div>
           </div>
 
-          {/* カレンダーヘッダー */}
-          <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
-            <div>月</div>
-            <div>火</div>
-            <div>水</div>
-            <div>木</div>
-            <div>金</div>
-            <div className="text-[#4B8BF5]">土</div>
-            <div className="text-red-500">日</div>
-          </div>
+         {/* シフト・詳細タブの時だけカレンダーを表示 */}
+{(adminTab === 'overview' || adminTab === 'detail') && (
+  <>
+    {/* カレンダーヘッダー */}
+    <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
+      <div>月</div>
+      <div>火</div>
+      <div>水</div>
+      <div>木</div>
+      <div>金</div>
+      <div className="text-[#4B8BF5]">土</div>
+      <div className="text-red-500">日</div>
+    </div>
 
-          {/* スライド付きカレンダーエリア */}
-<div className="relative overflow-hidden border-b border-gray-200 h-[288px] touch-pan-y">
-  <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
-    <motion.div
-      key={`${year}-${month}`}
-      custom={slideDirection}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{
-        x: { type: 'spring', stiffness: 300, damping: 30 },
-        opacity: { duration: 0.15 }
-      }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.2}
-      onDragEnd={(e, { offset, velocity }) => {
-        const swipe = Math.abs(offset.x) * velocity.x
-        if (offset.x < -60 || swipe < -400) {
-          changeMonth(1) // 左スワイプで翌月へ
-        } else if (offset.x > 60 || swipe > 400) {
-          changeMonth(-1) // 右スワイプで前月へ
-        }
-      }}
-      className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
-    >
-      {calendarDays.map((item, idx) => {
-        const isSelected = selectedDate === item.dateStr
-        let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-        if (item.isCurrentMonth) {
-          if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
-          if (item.dayOfWeek === 6) textColor = 'text-red-500'
-        }
+    {/* スライド付きカレンダーエリア */}
+    <div className="relative overflow-hidden border-b border-gray-200 h-[288px] touch-pan-y">
+      <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+        <motion.div
+          key={`${year}-${month}`}
+          custom={slideDirection}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            x: { type: 'spring', stiffness: 300, damping: 30 },
+            opacity: { duration: 0.15 }
+          }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, { offset, velocity }) => {
+            const swipe = Math.abs(offset.x) * velocity.x
+            if (offset.x < -60 || swipe < -400) {
+              changeMonth(1) // 左スワイプで翌月へ
+            } else if (offset.x > 60 || swipe > 400) {
+              changeMonth(-1) // 右スワイプで前月へ
+            }
+          }}
+          className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
+        >
+          {calendarDays.map((item, idx) => {
+            const isSelected = selectedDate === item.dateStr
+            let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+            if (item.isCurrentMonth) {
+              if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+              if (item.dayOfWeek === 6) textColor = 'text-red-500'
+            }
 
-        return (
-          <button
-            key={idx}
-            onClick={() => {
-              setSelectedDate(item.dateStr)
-              if (adminTab === 'detail') setAdminTab('overview')
-            }}
-            className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
-          >
-            <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-              isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-            }`}>
-              {item.day}
-            </span>
-          </button>
-        )
-      })}
-    </motion.div>
-  </AnimatePresence>
-</div>
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  setSelectedDate(item.dateStr)
+                  if (adminTab === 'detail') setAdminTab('overview')
+                }}
+                className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
+              >
+                <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                  isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                }`}>
+                  {item.day}
+                </span>
+              </button>
+            )
+          })}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  </>
+)}
 
           {/* メインコンテンツエリア */}
           <div className="p-4 flex-1">
