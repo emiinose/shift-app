@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation' 
 import { supabase } from './lib/supabase'
 import { createClient } from '@/utils/supabase/client'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Home() {
   const router = useRouter()
@@ -17,13 +18,12 @@ export default function Home() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
   const [message, setMessage] = useState('')
 
+  // プリセット現場名
   const presetSites = ['みなと', '佐川', 'ヨコレイ', '埠頭', '白鳥', 'Umios(コンテナ)', 'Umios(ピッキング)']
 
-  // 管理者タブ（overview: シフト管理, requests: 休み申請, staff: スタッフ一覧, detail: シフト詳細配置）
+  // 管理者タブ
   const [adminTab, setAdminTab] = useState<'overview' | 'requests' | 'staff' | 'detail'>('overview')
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -39,18 +39,12 @@ export default function Home() {
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('17:00')
 
-  // カレンダー用ステート（スタッフ用・管理者共通）
+  // カレンダー用ステート
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedCalDate, setSelectedCalDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
+  const [slideDirection, setSlideDirection] = useState<number>(0) // 1: 次月(左へスライド), -1: 前月(右へスライド)
 
   // 休み申請用ステート
-  const [leaveDate, setLeaveDate] = useState('')
-  const [leaveSite, setLeaveSite] = useState(presetSites[0])
-  const [leaveReason, setLeaveReason] = useState('')
   const [leaveRequests, setLeaveRequests] = useState<any[]>([])
-  const [leaveMessage, setLeaveMessage] = useState('')
 
   // スタッフ編集モーダル用ステート
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
@@ -162,27 +156,6 @@ export default function Home() {
     }
   }
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) {
-      setMessage('メールアドレスを入力してください')
-      return
-    }
-
-    setMessage('再設定メールを送信中...')
-    const redirectUrl = `${window.location.origin}/reset-password`
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: redirectUrl,
-    })
-
-    if (error) {
-      setMessage(`送信エラー: ${error.message}`)
-    } else {
-      setMessage('パスワード再設定用メールを送信しました。受信トレイをご確認ください。')
-    }
-  }
-
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
@@ -256,34 +229,6 @@ export default function Home() {
     else loadAllData()
   }
 
-  const handleSendLeaveRequest = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!leaveDate) {
-      setLeaveMessage('日付を選択してください')
-      return
-    }
-
-    const { error } = await supabase.from('leave_requests').insert([
-      {
-        user_id: session.user.id,
-        user_email: session.user.email,
-        leave_date: leaveDate,
-        site_name: leaveSite,
-        reason: leaveReason,
-        status: 'pending',
-      },
-    ])
-
-    if (error) {
-      setLeaveMessage(`エラー: ${error.message}`)
-    } else {
-      setLeaveMessage('休み申請を送信しました！')
-      setLeaveDate('')
-      setLeaveReason('')
-      loadAllData()
-    }
-  }
-
   const handleToggleLeaveStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'pending' ? 'approved' : 'pending'
     const { error } = await supabase.from('leave_requests').update({ status: nextStatus }).eq('id', id)
@@ -338,6 +283,12 @@ export default function Home() {
     }
   }
 
+  // 月切り替え関数
+  const changeMonth = (offset: number) => {
+    setSlideDirection(offset)
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
+  }
+
   // 月曜始まりのカレンダー生成計算
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -345,7 +296,6 @@ export default function Home() {
   const firstDayOfMonth = new Date(year, month, 1)
   const lastDayOfMonth = new Date(year, month + 1, 0)
 
-  // 0:日, 1:月 ... -> 月曜始まり（月=0, ..., 日=6）に変換
   let startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7
   const daysInMonth = lastDayOfMonth.getDate()
 
@@ -353,7 +303,6 @@ export default function Home() {
 
   const calendarDays = []
   
-  // 前月の日付埋め
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
     const day = prevMonthLastDay - i
     const prevDateObj = new Date(year, month - 1, day)
@@ -363,14 +312,12 @@ export default function Home() {
     calendarDays.push({ day, dateStr, isCurrentMonth: false, dayOfWeek: (prevDateObj.getDay() + 6) % 7 })
   }
 
-  // 当月の日付
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day)
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     calendarDays.push({ day, dateStr, isCurrentMonth: true, dayOfWeek: (dateObj.getDay() + 6) % 7 })
   }
 
-  // 翌月の日付埋め (42マスに満たない場合)
   const remainingCells = (7 - (calendarDays.length % 7)) % 7
   for (let day = 1; day <= remainingCells; day++) {
     const nextDateObj = new Date(year, month + 1, day)
@@ -380,19 +327,28 @@ export default function Home() {
     calendarDays.push({ day, dateStr, isCurrentMonth: false, dayOfWeek: (nextDateObj.getDay() + 6) % 7 })
   }
 
-  const changeMonth = (offset: number) => {
-    setCurrentDate(new Date(year, month + offset, 1))
-  }
-
   const pendingLeaveCount = leaveRequests.filter(r => r.status === 'pending').length
 
-  if (session) {
-    const currentUserName = userProfile?.full_name || session.user.email
+  // アニメーション設定
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 300 : -300,
+      opacity: 0,
+    }),
+  }
 
+  if (session) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
-        {/* 全体幅固定コンテナ（スマホ幅393px想定） */}
-        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col">
+        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden">
           
           {/* ヘッダー */}
           <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
@@ -409,7 +365,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* カレンダーヘッダー (月火水木金土日) */}
+          {/* カレンダーヘッダー */}
           <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
             <div>月</div>
             <div>火</div>
@@ -420,41 +376,63 @@ export default function Home() {
             <div className="text-red-500">日</div>
           </div>
 
-          {/* カレンダーグリッド */}
-          <div className="grid grid-cols-7 border-b border-gray-200">
-            {calendarDays.map((item, idx) => {
-              const isSelected = selectedDate === item.dateStr
-              let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-              if (item.isCurrentMonth) {
-                if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
-                if (item.dayOfWeek === 6) textColor = 'text-red-500'
-              }
+          {/* スライド付きカレンダーエリア */}
+          <div className="relative overflow-hidden border-b border-gray-200 min-h-[288px]">
+            <AnimatePresence initial={false} custom={slideDirection}>
+              <motion.div
+                key={`${year}-${month}`}
+                custom={slideDirection}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(e, { offset, velocity }) => {
+                  const swipe = Math.abs(offset.x) * velocity.x
+                  if (offset.x < -80 || swipe < -500) {
+                    changeMonth(1) // 左スワイプで翌月へ
+                  } else if (offset.x > 80 || swipe > 500) {
+                    changeMonth(-1) // 右スワイプで前月へ
+                  }
+                }}
+                className="grid grid-cols-7 w-full cursor-grab active:cursor-grabbing"
+              >
+                {calendarDays.map((item, idx) => {
+                  const isSelected = selectedDate === item.dateStr
+                  let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+                  if (item.isCurrentMonth) {
+                    if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                    if (item.dayOfWeek === 6) textColor = 'text-red-500'
+                  }
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedDate(item.dateStr)
-                    if (adminTab === 'detail') setAdminTab('overview')
-                  }}
-                  className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
-                >
-                  <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-                    isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-                  }`}>
-                    {item.day}
-                  </span>
-                </button>
-              )
-            })}
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setSelectedDate(item.dateStr)
+                        if (adminTab === 'detail') setAdminTab('overview')
+                      }}
+                      className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition select-none"
+                    >
+                      <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                        isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                      }`}>
+                        {item.day}
+                      </span>
+                    </button>
+                  )
+                })}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* メインコンテンツエリア */}
           <div className="p-4 flex-1">
-            {/* 管理者モード - シフト管理 */}
             {(adminTab === 'overview' || adminTab === 'detail') && (
               <div>
-                {/* 選択日付ヘッダー */}
                 <div className="text-sm font-bold text-gray-800 mb-3">
                   {selectedDate.replace(/-/g, '/')}
                 </div>
@@ -515,7 +493,6 @@ export default function Home() {
                             })}
                           </div>
 
-                          {/* 現場追加フォーム */}
                           <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-4">
                             <input
                               type="text"
@@ -537,7 +514,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* シフト詳細配置画面 */}
                 {adminTab === 'detail' && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 border-b pb-2">
@@ -620,7 +596,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* 管理者モード - スタッフ一覧 */}
             {adminTab === 'staff' && (
               <div className="space-y-3">
                 <h2 className="text-sm font-bold text-gray-800 mb-2">👥 スタッフ一覧</h2>
@@ -642,7 +617,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* 管理者モード - 休み申請一覧 */}
             {adminTab === 'requests' && (
               <div className="space-y-3">
                 <h2 className="text-sm font-bold text-gray-800 mb-2">📩 休み申請一覧</h2>
@@ -679,7 +653,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* フッター（ボトムナビゲーション） */}
+          {/* フッター */}
           <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
             <button
               onClick={() => setAdminTab('overview')}
@@ -776,14 +750,13 @@ export default function Home() {
     )
   }
 
-  // ログイン / 新規登録 画面
+  // ログイン画面
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
         <h1 className="text-xl font-bold text-center text-gray-800">
           {authMode === 'login' && 'ログイン'}
           {authMode === 'signup' && '新規アカウント登録'}
-          {authMode === 'reset' && 'パスワードの再設定'}
         </h1>
 
         {authMode === 'login' && (
