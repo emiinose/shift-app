@@ -66,13 +66,11 @@ export default function Home() {
   const [staffSaveMsg, setStaffSaveMsg] = useState('')
 
   useEffect(() => {
-    // ① URLのハッシュに recovery が含まれている場合は /reset-password にリダイレクトして終了
     if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
       router.push('/reset-password' + window.location.hash)
       return
     }
 
-    // ② 既存のログイン状態チェックとデータ読み込み
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) {
@@ -156,7 +154,7 @@ export default function Home() {
           full_name: fullName.trim(),
         })
         setUserRole('employee')
-        setMessage('新規登録が完了しました！ログイン中...')
+        setMessage('新規登録が完了しました！移動します...')
         window.location.href = '/'
       }
     } catch (err: any) {
@@ -172,8 +170,6 @@ export default function Home() {
     }
 
     setMessage('再設定メールを送信中...')
-    
-    // 正しいリダイレクト先を設定
     const redirectUrl = `${window.location.origin}/reset-password`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -221,10 +217,10 @@ export default function Home() {
 
   const handleAddCustomDeban = (dateStr: string) => {
     if (!customDebanInput.trim()) {
-      alert('デバンの現場名または詳細を入力してください')
+      alert('現場名を入力してください')
       return
     }
-    const debanName = customDebanInput.startsWith('デバン') ? customDebanInput : `デバン（${customDebanInput}）`
+    const debanName = customDebanInput.trim()
     handleUpdateRequirement(dateStr, debanName, 1)
     setCustomDebanInput('')
   }
@@ -342,64 +338,51 @@ export default function Home() {
     }
   }
 
-  const isJapaneseHoliday = (y: number, m: number, d: number) => {
-    const monthDayHolidays: { [key: number]: number[] } = {
-      1: [1],
-      2: [11, 23],
-      4: [29],
-      5: [3, 4, 5],
-      8: [11],
-      11: [3, 23],
-    }
-
-    if (monthDayHolidays[m] && monthDayHolidays[m].includes(d)) return true
-
-    const dateObj = new Date(y, m - 1, d)
-    const dayOfWeek = dateObj.getDay()
-    const nthWeek = Math.ceil(d / 7)
-
-    if (dayOfWeek === 1) {
-      if (m === 1 && nthWeek === 2) return true
-      if (m === 7 && nthWeek === 3) return true
-      if (m === 9 && nthWeek === 3) return true
-      if (m === 10 && nthWeek === 2) return true
-    }
-
-    if (m === 3 && d === Math.floor(20.8431 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return true
-    if (m === 9 && d === Math.floor(23.2488 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return true
-
-    return false
-  }
-
+  // 月曜始まりのカレンダー生成計算
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
   const firstDayOfMonth = new Date(year, month, 1)
   const lastDayOfMonth = new Date(year, month + 1, 0)
 
-  const startDayOfWeek = firstDayOfMonth.getDay()
+  // 0:日, 1:月 ... -> 月曜始まり（月=0, ..., 日=6）に変換
+  let startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7
   const daysInMonth = lastDayOfMonth.getDate()
 
+  const prevMonthLastDay = new Date(year, month, 0).getDate()
+
   const calendarDays = []
-  for (let i = 0; i < startDayOfWeek; i++) {
-    calendarDays.push(null)
+  
+  // 前月の日付埋め
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const day = prevMonthLastDay - i
+    const prevDateObj = new Date(year, month - 1, day)
+    const y = prevDateObj.getFullYear()
+    const m = prevDateObj.getMonth() + 1
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    calendarDays.push({ day, dateStr, isCurrentMonth: false, dayOfWeek: (prevDateObj.getDay() + 6) % 7 })
   }
+
+  // 当月の日付
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day)
-    const dayOfWeek = dateObj.getDay()
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const isHoliday = isJapaneseHoliday(year, month + 1, day)
+    calendarDays.push({ day, dateStr, isCurrentMonth: true, dayOfWeek: (dateObj.getDay() + 6) % 7 })
+  }
 
-    calendarDays.push({ day, dateStr, dayOfWeek, isHoliday })
+  // 翌月の日付埋め (42マスに満たない場合)
+  const remainingCells = (7 - (calendarDays.length % 7)) % 7
+  for (let day = 1; day <= remainingCells; day++) {
+    const nextDateObj = new Date(year, month + 1, day)
+    const y = nextDateObj.getFullYear()
+    const m = nextDateObj.getMonth() + 1
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    calendarDays.push({ day, dateStr, isCurrentMonth: false, dayOfWeek: (nextDateObj.getDay() + 6) % 7 })
   }
 
   const changeMonth = (offset: number) => {
     setCurrentDate(new Date(year, month + offset, 1))
   }
-
-  const myShifts = shifts.filter(s => s.user_id === session?.user?.id)
-  const selectedDayShifts = myShifts.filter(s => s.work_date === selectedCalDate)
-  const myLeaveRequests = leaveRequests.filter(l => l.user_id === session?.user?.id)
 
   const pendingLeaveCount = leaveRequests.filter(r => r.status === 'pending').length
 
@@ -407,387 +390,164 @@ export default function Home() {
     const currentUserName = userProfile?.full_name || session.user.email
 
     return (
-      <div className="min-h-screen p-4 bg-gray-100 flex flex-col items-center">
-        {/* ヘッダー */}
-        <div className="w-full max-w-2xl bg-white p-4 rounded-lg shadow mb-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-base font-bold text-gray-800">シフト管理システム</h1>
-            <span className={`text-xs px-2 py-0.5 rounded font-bold ${userRole === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
-              {userRole === 'admin' ? '管理者モード' : 'スタッフモード'}
-            </span>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
+        {/* 全体幅固定コンテナ（スマホ幅393px想定） */}
+        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col">
+          
+          {/* ヘッダー */}
+          <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{year}年{month + 1}月</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
+                {userRole === 'admin' ? '管理者' : 'スタッフ'}
+              </span>
+              <button onClick={handleSignOut} className="text-xs text-white/80 hover:text-white underline">
+                ログアウト
+              </button>
+            </div>
           </div>
-          <button onClick={handleSignOut} className="bg-red-500 text-white px-3 py-1 text-xs rounded hover:bg-red-600 font-bold">
-            ログアウト
-          </button>
-        </div>
 
-        {/* スタッフモード */}
-        {userRole === 'employee' && (
-          <div className="w-full max-w-md space-y-4">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <button onClick={() => changeMonth(-1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm font-bold active:bg-gray-300">
-                  &lt; 前月
-                </button>
-                <h2 className="text-base font-bold text-gray-800">
-                  {year}年 {month + 1}月
-                </h2>
-                <button onClick={() => changeMonth(1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm font-bold active:bg-gray-300">
-                  次月 &gt;
-                </button>
-              </div>
+          {/* カレンダーヘッダー (月火水木金土日) */}
+          <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
+            <div>月</div>
+            <div>火</div>
+            <div>水</div>
+            <div>木</div>
+            <div>金</div>
+            <div className="text-[#4B8BF5]">土</div>
+            <div className="text-red-500">日</div>
+          </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2">
-                <div className="text-red-500">日</div>
-                <div className="text-gray-500">月</div>
-                <div className="text-gray-500">火</div>
-                <div className="text-gray-500">水</div>
-                <div className="text-gray-500">木</div>
-                <div className="text-gray-500">金</div>
-                <div className="text-blue-500">土</div>
-              </div>
+          {/* カレンダーグリッド */}
+          <div className="grid grid-cols-7 border-b border-gray-200">
+            {calendarDays.map((item, idx) => {
+              const isSelected = selectedDate === item.dateStr
+              let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+              if (item.isCurrentMonth) {
+                if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                if (item.dayOfWeek === 6) textColor = 'text-red-500'
+              }
 
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((item, idx) => {
-                  if (!item) return <div key={`empty-${idx}`} className="h-12 bg-gray-50 rounded-lg"></div>
-
-                  const hasShift = myShifts.some(s => s.work_date === item.dateStr)
-                  const isSelected = selectedCalDate === item.dateStr
-
-                  let textColor = 'text-gray-700'
-                  if (item.dayOfWeek === 0 || item.isHoliday) {
-                    textColor = 'text-red-500 font-extrabold'
-                  } else if (item.dayOfWeek === 6) {
-                    textColor = 'text-blue-500 font-extrabold'
-                  }
-
-                  return (
-                    <button
-                      key={item.dateStr}
-                      onClick={() => setSelectedCalDate(item.dateStr)}
-                      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg border text-xs transition ${
-                        isSelected ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-400' : 'border-gray-200 bg-white'
-                      }`}
-                    >
-                      <span className={`font-bold ${textColor}`}>{item.day}</span>
-                      {hasShift && <span className="w-2 h-2 rounded-full bg-blue-600 mb-1"></span>}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-lg shadow space-y-3">
-              <h3 className="text-sm font-bold text-gray-700 border-b pb-2">
-                📅 {selectedCalDate} のスケジュール
-              </h3>
-
-              {selectedDayShifts.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">予定されているシフトはありません</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedDayShifts.map(s => (
-                    <div key={s.id} className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center text-gray-800">
-                      <div>
-                        <span className="text-xs text-gray-500 block">勤務現場</span>
-                        <span className="text-sm font-bold text-blue-900">{s.site_name}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs text-gray-500 block">勤務時間</span>
-                        <span className="text-sm font-bold text-gray-800">
-                          {s.start_time.slice(0, 5)} ～ {s.end_time.slice(0, 5)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white p-4 rounded-lg shadow space-y-4">
-              <h3 className="text-sm font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                ✉️ 休み申請フォーマット
-              </h3>
-
-              <form onSubmit={handleSendLeaveRequest} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">申請者（名前・メールアドレス）</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`${currentUserName} (${session.user.email})`}
-                    className="w-full p-2 border rounded text-xs bg-gray-100 text-gray-600 font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">希望日付 *</label>
-                  <input
-                    type="date"
-                    required
-                    value={leaveDate}
-                    onChange={(e) => setLeaveDate(e.target.value)}
-                    className="w-full p-2 border rounded text-xs text-gray-800 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">対象現場</label>
-                  <select
-                    value={leaveSite}
-                    onChange={(e) => setLeaveSite(e.target.value)}
-                    className="w-full p-2 border rounded text-xs text-gray-800 focus:ring-2 focus:ring-blue-500"
-                  >
-                    {presetSites.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">メッセージ / 理由</label>
-                  <textarea
-                    rows={2}
-                    placeholder="理由などを記載（任意）"
-                    value={leaveReason}
-                    onChange={(e) => setLeaveReason(e.target.value)}
-                    className="w-full p-2 border rounded text-xs text-gray-800 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
+              return (
                 <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs shadow transition"
+                  key={idx}
+                  onClick={() => {
+                    setSelectedDate(item.dateStr)
+                    if (adminTab === 'detail') setAdminTab('overview')
+                  }}
+                  className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
                 >
-                  送信する
-                </button>
-
-                {leaveMessage && (
-                  <p className="text-xs text-center font-bold text-green-600 mt-2">{leaveMessage}</p>
-                )}
-              </form>
-
-              {myLeaveRequests.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-xs font-bold text-gray-700 mb-2">送信済みの申請履歴</h4>
-                  <div className="space-y-2">
-                    {myLeaveRequests.map(r => (
-                      <div key={r.id} className="p-2 border rounded bg-gray-50 flex justify-between items-center text-xs">
-                        <div>
-                          <span className="font-bold text-gray-800">{r.leave_date}</span> ({r.site_name})
-                        </div>
-                        <span className={`px-2 py-0.5 rounded font-bold ${r.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {r.status === 'approved' ? '許可済み' : '確認中'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 管理者モード */}
-        {userRole === 'admin' && (
-          <div className="w-full max-w-2xl space-y-4">
-            {/* ナビゲーションタブ */}
-            <div className="flex border-b border-gray-200 bg-white rounded-t-lg overflow-hidden shadow-sm">
-              <button
-                onClick={() => setAdminTab('overview')}
-                className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition ${
-                  adminTab === 'overview' || adminTab === 'detail'
-                    ? 'border-purple-600 text-purple-600 bg-purple-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                📅 シフト管理
-              </button>
-              <button
-                onClick={() => setAdminTab('requests')}
-                className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition relative ${
-                  adminTab === 'requests'
-                    ? 'border-purple-600 text-purple-600 bg-purple-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                📩 休み申請一覧
-                {pendingLeaveCount > 0 && (
-                  <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">
-                    {pendingLeaveCount}
+                  <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                    isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                  }`}>
+                    {item.day}
                   </span>
-                )}
-              </button>
-              <button
-                onClick={() => setAdminTab('staff')}
-                className={`flex-1 py-3 text-xs font-bold border-b-2 text-center transition ${
-                  adminTab === 'staff'
-                    ? 'border-purple-600 text-purple-600 bg-purple-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                👥 スタッフ一覧・詳細
-              </button>
-            </div>
+                </button>
+              )
+            })}
+          </div>
 
-            {/* Tab 1: シフト管理 (カレンダー + 過去・未来シフト閲覧) */}
+          {/* メインコンテンツエリア */}
+          <div className="p-4 flex-1">
+            {/* 管理者モード - シフト管理 */}
             {(adminTab === 'overview' || adminTab === 'detail') && (
-              <div className="space-y-4">
-                {/* カレンダー設置 */}
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <div className="flex justify-between items-center mb-4">
-                    <button onClick={() => changeMonth(-1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-bold hover:bg-gray-300">
-                      &lt; 前月
-                    </button>
-                    <h2 className="text-sm font-bold text-gray-800">
-                      日付選択: {year}年 {month + 1}月
-                    </h2>
-                    <button onClick={() => changeMonth(1)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-bold hover:bg-gray-300">
-                      次月 &gt;
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-2">
-                    <div className="text-red-500">日</div>
-                    <div className="text-gray-500">月</div>
-                    <div className="text-gray-500">火</div>
-                    <div className="text-gray-500">水</div>
-                    <div className="text-gray-500">木</div>
-                    <div className="text-gray-500">金</div>
-                    <div className="text-blue-500">土</div>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {calendarDays.map((item, idx) => {
-                      if (!item) return <div key={`admin-empty-${idx}`} className="h-10 bg-gray-50 rounded"></div>
-
-                      const isSelected = selectedDate === item.dateStr
-                      const hasShiftData = shifts.some(s => s.work_date === item.dateStr)
-
-                      let textColor = 'text-gray-700'
-                      if (item.dayOfWeek === 0 || item.isHoliday) {
-                        textColor = 'text-red-500 font-bold'
-                      } else if (item.dayOfWeek === 6) {
-                        textColor = 'text-blue-500 font-bold'
-                      }
-
-                      return (
-                        <button
-                          key={`admin-${item.dateStr}`}
-                          onClick={() => {
-                            setSelectedDate(item.dateStr)
-                            if (adminTab === 'detail') setAdminTab('overview')
-                          }}
-                          className={`h-10 flex flex-col items-center justify-between p-1 rounded border text-xs transition ${
-                            isSelected
-                              ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-400 font-bold'
-                              : 'border-gray-200 bg-white hover:bg-gray-50'
-                          }`}
-                        >
-                          <span className={textColor}>{item.day}</span>
-                          {hasShiftData && <span className="w-1.5 h-1.5 rounded-full bg-purple-600 mb-0.5"></span>}
-                        </button>
-                      )
-                    })}
-                  </div>
+              <div>
+                {/* 選択日付ヘッダー */}
+                <div className="text-sm font-bold text-gray-800 mb-3">
+                  {selectedDate.replace(/-/g, '/')}
                 </div>
 
-                {/* View 1-A: 選択した日付のシフト一覧確認 */}
                 {adminTab === 'overview' && (
-                  <div className="bg-white p-6 rounded-lg shadow space-y-6">
-                    <div className="border-b pb-2 flex justify-between items-center">
-                      <h2 className="text-md font-bold text-purple-900">
-                        📅 {selectedDate} のシフト状況
-                      </h2>
-                      <span className="text-xs text-gray-500">※数字変更で即座更新</span>
-                    </div>
-
+                  <div className="space-y-3">
                     {(() => {
                       const customDebanSites = Array.from(new Set([
-                        ...requirements.filter(r => r.work_date === selectedDate && r.site_name.includes('デバン')).map(r => r.site_name),
-                        ...shifts.filter(s => s.work_date === selectedDate && s.site_name.includes('デバン')).map(s => s.site_name)
+                        ...requirements.filter(r => r.work_date === selectedDate && !presetSites.includes(r.site_name)).map(r => r.site_name),
+                        ...shifts.filter(s => s.work_date === selectedDate && !presetSites.includes(s.site_name)).map(s => s.site_name)
                       ]))
 
                       const currentSites = [...presetSites, ...customDebanSites]
 
                       return (
-                        <div className="space-y-2">
-                          {currentSites.map(site => {
-                            const assignedCount = shifts.filter(s => s.work_date === selectedDate && s.site_name === site).length
-                            const req = requirements.find(r => r.work_date === selectedDate && r.site_name === site)
-                            const reqTotal = req ? req.required_count : (site.includes('デバン') ? 1 : 3)
-                            const remaining = reqTotal - assignedCount
+                        <>
+                          <div className="space-y-2.5">
+                            {currentSites.map(site => {
+                              const assignedCount = shifts.filter(s => s.work_date === selectedDate && s.site_name === site).length
+                              const req = requirements.find(r => r.work_date === selectedDate && r.site_name === site)
+                              const reqTotal = req ? req.required_count : (site.includes('デバン') ? 1 : 0)
+                              const remaining = reqTotal - assignedCount
 
-                            return (
-                              <div
-                                key={site}
-                                className="flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 border rounded transition"
-                              >
-                                <button
-                                  onClick={() => handleOpenDetail(selectedDate, site)}
-                                  className="font-bold text-gray-800 hover:text-purple-600 text-left underline text-xs"
-                                >
-                                  {site} ({assignedCount}名配置済)
-                                </button>
-
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                                    <span>必要:</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={reqTotal}
-                                      onChange={(e) => handleUpdateRequirement(selectedDate, site, Number(e.target.value))}
-                                      className="w-12 p-1 border rounded text-center text-gray-800 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    />
-                                    <span>人</span>
-                                  </div>
-
-                                  <span
+                              return (
+                                <div key={site} className="flex items-center justify-between text-xs py-1">
+                                  <span 
                                     onClick={() => handleOpenDetail(selectedDate, site)}
-                                    className={`text-xs font-bold cursor-pointer ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}`}
+                                    className="font-bold text-gray-800 cursor-pointer hover:text-[#4B8BF5] flex-1"
                                   >
-                                    {remaining <= 0 ? '充足' : `あと ${remaining} 人`}
+                                    {site}
                                   </span>
-                                </div>
-                              </div>
-                            )
-                          })}
 
-                          <div className="flex items-center gap-2 pt-3">
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1 text-gray-600">
+                                      <span>必要：</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={reqTotal}
+                                        onChange={(e) => handleUpdateRequirement(selectedDate, site, Number(e.target.value))}
+                                        className="w-10 h-7 border-2 border-[#4B8BF5] rounded text-center font-bold text-gray-800 focus:outline-none"
+                                      />
+                                      <span>人</span>
+                                    </div>
+
+                                    <div 
+                                      onClick={() => handleOpenDetail(selectedDate, site)}
+                                      className="flex items-center gap-1 cursor-pointer w-20 justify-end"
+                                    >
+                                      <span className={`font-bold ${remaining > 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                                        残り {Math.max(0, remaining)} 人
+                                      </span>
+                                      <span className="text-[#4B8BF5] font-bold">&gt;</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* 現場追加フォーム */}
+                          <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-4">
                             <input
                               type="text"
-                              placeholder="デバンの現場名・手動入力（例: デバンA）"
+                              placeholder="現場名"
                               value={customDebanInput}
                               onChange={(e) => setCustomDebanInput(e.target.value)}
-                              className="flex-1 p-2 border rounded text-xs text-gray-800"
+                              className="flex-1 p-2 border-2 border-[#4B8BF5] rounded text-xs text-gray-800 focus:outline-none"
                             />
                             <button
                               onClick={() => handleAddCustomDeban(selectedDate)}
-                              className="bg-purple-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-purple-700"
+                              className="bg-[#4B8BF5] text-white px-4 py-2 rounded text-xs font-bold hover:bg-[#3B72D0] transition"
                             >
-                              デバン追加
+                              追加
                             </button>
                           </div>
-                        </div>
+                        </>
                       )
                     })()}
                   </div>
                 )}
 
-                {/* View 1-B: シフト詳細配置画面 */}
+                {/* シフト詳細配置画面 */}
                 {adminTab === 'detail' && (
-                  <div className="bg-white p-6 rounded-lg shadow space-y-6">
-                    <div className="flex items-center gap-4 border-b pb-3">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b pb-2">
                       <button
                         onClick={() => setAdminTab('overview')}
-                        className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded hover:bg-gray-300"
+                        className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded font-bold"
                       >
                         &lt; 戻る
                       </button>
-                      <h2 className="text-md font-bold text-gray-800">
-                        {selectedDate} 【{selectedSite}】
-                      </h2>
+                      <span className="font-bold text-sm text-[#4B8BF5]">{selectedSite}</span>
                     </div>
 
                     <div>
@@ -798,15 +558,15 @@ export default function Home() {
                         <div className="space-y-2">
                           {shifts.filter(s => s.work_date === selectedDate && s.site_name === selectedSite).map(s => {
                             const user = allUsers.find(u => u.id === s.user_id)
-                            const displayName = user?.full_name ? `${user.full_name} (${user.email || 'メール未設定'})` : (user?.email || s.user_id)
+                            const displayName = user?.full_name ? `${user.full_name}` : (user?.email || s.user_id)
                             return (
-                              <div key={s.id} className="flex justify-between items-center p-3 border rounded bg-white text-xs">
+                              <div key={s.id} className="flex justify-between items-center p-2.5 border rounded text-xs bg-gray-50">
                                 <span className="font-bold text-gray-800">{displayName}</span>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
                                   <span className="text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
                                   <button
                                     onClick={() => handleDeleteShift(s.id)}
-                                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 font-bold"
+                                    className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold"
                                   >
                                     削除
                                   </button>
@@ -820,37 +580,39 @@ export default function Home() {
 
                     <form onSubmit={handleAddStaff} className="border-t pt-4 space-y-3">
                       <h3 className="font-bold text-gray-700 text-xs">スタッフを追加</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <select
-                          value={targetUserId}
-                          onChange={(e) => setTargetUserId(e.target.value)}
-                          className="p-2 border rounded text-gray-800 text-xs"
-                        >
-                          <option value="">スタッフを選択...</option>
-                          {allUsers.map(u => (
-                            <option key={u.id} value={u.id}>
-                              {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
-                            </option>
-                          ))}
-                        </select>
+                      <select
+                        value={targetUserId}
+                        onChange={(e) => setTargetUserId(e.target.value)}
+                        className="w-full p-2 border rounded text-gray-800 text-xs bg-white"
+                      >
+                        <option value="">スタッフを選択...</option>
+                        {allUsers.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex gap-2">
                         <input
                           type="time"
                           value={startTime}
                           onChange={(e) => setStartTime(e.target.value)}
-                          className="p-2 border rounded text-gray-800 text-xs"
+                          className="flex-1 p-2 border rounded text-gray-800 text-xs"
                         />
                         <input
                           type="time"
                           value={endTime}
                           onChange={(e) => setEndTime(e.target.value)}
-                          className="p-2 border rounded text-gray-800 text-xs"
+                          className="flex-1 p-2 border rounded text-gray-800 text-xs"
                         />
                       </div>
+
                       <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 text-xs shadow"
+                        className="w-full bg-[#4B8BF5] text-white py-2 rounded font-bold hover:bg-[#3B72D0] text-xs shadow transition"
                       >
-                        この現場に追加する
+                        追加する
                       </button>
                     </form>
                   </div>
@@ -858,229 +620,154 @@ export default function Home() {
               </div>
             )}
 
-            {/* Tab 2: 独立した「届いた休み申請一覧」 */}
-            {adminTab === 'requests' && (
-              <div className="bg-white p-6 rounded-lg shadow space-y-4">
-                <h2 className="text-md font-bold text-gray-800 border-b pb-2 flex items-center justify-between">
-                  <span>📩 届いた休み申請一覧</span>
-                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
-                    未処理: {pendingLeaveCount}件
-                  </span>
-                </h2>
-
-                {leaveRequests.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">休み申請はありません</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-100 text-gray-700 border-b">
-                          <th className="p-2">スタッフ</th>
-                          <th className="p-2">希望日</th>
-                          <th className="p-2">現場名</th>
-                          <th className="p-2">メッセージ</th>
-                          <th className="p-2 text-center">状態</th>
-                          <th className="p-2 text-center">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {leaveRequests.map(req => {
-                          const applicant = allUsers.find(u => u.id === req.user_id)
-                          const applicantLabel = applicant?.full_name 
-                            ? `${applicant.full_name} (${req.user_email || applicant.email || ''})` 
-                            : (req.user_email || '不明')
-
-                          return (
-                            <tr key={req.id} className="border-b hover:bg-gray-50">
-                              <td className="p-2 font-bold text-gray-800">{applicantLabel}</td>
-                              <td className="p-2 font-bold text-blue-600">{req.leave_date}</td>
-                              <td className="p-2 text-gray-700">{req.site_name}</td>
-                              <td className="p-2 text-gray-500">{req.reason || '-'}</td>
-                              <td className="p-2 text-center">
-                                <span className={`px-2 py-0.5 rounded font-bold ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                  {req.status === 'approved' ? '許可済み' : '未許可'}
-                                </span>
-                              </td>
-                              <td className="p-2 text-center">
-                                <button
-                                  onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                                  className={`px-3 py-1 rounded text-xs font-bold transition ${
-                                    req.status === 'approved'
-                                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                      : 'bg-green-600 text-white hover:bg-green-700'
-                                  }`}
-                                >
-                                  {req.status === 'approved' ? '未許可に戻す' : '許可する'}
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tab 3: スタッフ一覧・詳細機能 */}
+            {/* 管理者モード - スタッフ一覧 */}
             {adminTab === 'staff' && (
-              <div className="bg-white p-6 rounded-lg shadow space-y-4">
-                <div className="flex justify-between items-center border-b pb-3">
-                  <h2 className="text-lg font-bold text-gray-800">👥 スタッフ一覧</h2>
-                  <span className="text-xs text-gray-500">名前カードをタップして詳細編集</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
+                <h2 className="text-sm font-bold text-gray-800 mb-2">👥 スタッフ一覧</h2>
+                <div className="space-y-2">
                   {allUsers.map(u => (
                     <div
                       key={u.id}
                       onClick={() => handleOpenStaffModal(u)}
-                      className="p-4 border rounded-xl bg-gray-50 hover:bg-purple-50 hover:border-purple-300 transition cursor-pointer flex justify-between items-center shadow-sm"
+                      className="p-3 border rounded-lg bg-gray-50 hover:bg-blue-50 transition cursor-pointer flex justify-between items-center"
                     >
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-800 text-sm">{u.full_name || '名称未設定'}</span>
-                          {u.role === 'admin' && (
-                            <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">管理者</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{u.email || 'メール未設定'}</p>
-                        {u.visa_status && (
-                          <span className="inline-block mt-2 text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold">
-                            {u.visa_status}
-                          </span>
-                        )}
+                        <div className="font-bold text-gray-800 text-xs">{u.full_name || '名称未設定'}</div>
+                        <div className="text-[10px] text-gray-500">{u.email || 'メール未設定'}</div>
                       </div>
-                      <span className="text-purple-600 text-xs font-bold">編集 &gt;</span>
+                      <span className="text-[#4B8BF5] text-xs font-bold">&gt;</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* スタッフ詳細・編集 モーダル */}
+            {/* 管理者モード - 休み申請一覧 */}
+            {adminTab === 'requests' && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-bold text-gray-800 mb-2">📩 休み申請一覧</h2>
+                {leaveRequests.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-4 text-center">休み申請はありません</p>
+                ) : (
+                  <div className="space-y-2">
+                    {leaveRequests.map(req => {
+                      const applicant = allUsers.find(u => u.id === req.user_id)
+                      return (
+                        <div key={req.id} className="p-3 border rounded-lg text-xs space-y-1 bg-gray-50">
+                          <div className="flex justify-between font-bold">
+                            <span>{applicant?.full_name || req.user_email || '不明'}</span>
+                            <span className="text-red-500">{req.leave_date}</span>
+                          </div>
+                          <div className="text-gray-600">現場: {req.site_name}</div>
+                          {req.reason && <div className="text-gray-500 text-[11px]">理由: {req.reason}</div>}
+                          <div className="pt-2 flex justify-end">
+                            <button
+                              onClick={() => handleToggleLeaveStatus(req.id, req.status)}
+                              className={`px-3 py-1 rounded text-[10px] font-bold ${
+                                req.status === 'approved' ? 'bg-gray-300 text-gray-700' : 'bg-green-600 text-white'
+                              }`}
+                            >
+                              {req.status === 'approved' ? '許可済み (解除)' : '許可する'}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* フッター（ボトムナビゲーション） */}
+          <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
+            <button
+              onClick={() => setAdminTab('overview')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>シフト</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('staff')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>スタッフ</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('requests')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
+                adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>申請</span>
+              {pendingLeaveCount > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+                  {pendingLeaveCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* スタッフ詳細編集モーダル */}
         {selectedStaff && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b pb-2">
-                <h3 className="font-bold text-gray-800 text-base">スタッフ詳細・情報編集</h3>
-                <button
-                  onClick={() => setSelectedStaff(null)}
-                  className="text-gray-400 hover:text-gray-600 font-bold text-lg px-2"
-                >
-                  ✕
-                </button>
+                <h3 className="font-bold text-gray-800 text-sm">スタッフ情報編集</h3>
+                <button onClick={() => setSelectedStaff(null)} className="text-gray-400 font-bold text-lg">✕</button>
               </div>
 
               <form onSubmit={handleSaveStaffInfo} className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">メールアドレス（変更不可）</label>
+                  <label className="block font-bold text-gray-700 mb-1">名前（氏名）</label>
                   <input
                     type="text"
-                    disabled
-                    value={selectedStaff.email || '未登録'}
-                    className="w-full p-2 border rounded bg-gray-100 text-gray-500 font-bold"
+                    value={staffForm.full_name}
+                    onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+                    className="w-full p-2 border rounded text-gray-800"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">名前（漢字・表示名）</label>
-                    <input
-                      type="text"
-                      value={staffForm.full_name}
-                      onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
-                      className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">名前（フリガナ）</label>
-                    <input
-                      type="text"
-                      placeholder="ヤマダ タロウ"
-                      value={staffForm.name_kana}
-                      onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
-                      className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">名前（英語・ローマ字）</label>
-                  <input
-                    type="text"
-                    placeholder="Taro Yamada"
-                    value={staffForm.name_en}
-                    onChange={(e) => setStaffForm({ ...staffForm, name_en: e.target.value })}
-                    className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">登録日</label>
-                    <input
-                      type="date"
-                      value={staffForm.registration_date}
-                      onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
-                      className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-1">生年月日</label>
-                    <input
-                      type="date"
-                      value={staffForm.birth_date}
-                      onChange={(e) => setStaffForm({ ...staffForm, birth_date: e.target.value })}
-                      className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">住所（区・市のみ）</label>
-                  <input
-                    type="text"
-                    placeholder="名古屋市港区"
-                    value={staffForm.address_city}
-                    onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
-                    className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">在留資格</label>
                   <input
                     type="text"
-                    placeholder="永住者 / 永住者の配偶者等 / 留学 など"
                     value={staffForm.visa_status}
                     onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
-                    className="w-full p-2 border rounded text-gray-800 focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-2 border rounded text-gray-800"
                   />
                 </div>
-
                 <div className="pt-2 flex gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedStaff(null)}
-                    className="flex-1 py-2 bg-gray-200 text-gray-700 rounded font-bold hover:bg-gray-300"
+                    className="flex-1 py-2 bg-gray-200 text-gray-700 rounded font-bold"
                   >
                     キャンセル
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 bg-purple-600 text-white rounded font-bold hover:bg-purple-700 shadow"
+                    className="flex-1 py-2 bg-[#4B8BF5] text-white rounded font-bold"
                   >
-                    保存する
+                    保存
                   </button>
                 </div>
-
-                {staffSaveMsg && (
-                  <p className="text-center font-bold text-purple-600 mt-2">{staffSaveMsg}</p>
-                )}
+                {staffSaveMsg && <p className="text-center font-bold text-[#4B8BF5] mt-1">{staffSaveMsg}</p>}
               </form>
             </div>
           </div>
@@ -1089,7 +776,7 @@ export default function Home() {
     )
   }
 
-  // ログイン / 新規登録 / パスワードリセット 画面
+  // ログイン / 新規登録 画面
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
@@ -1106,81 +793,32 @@ export default function Home() {
               <input
                 type="email"
                 required
-                placeholder="example@mail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
-
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">パスワード</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="パスワード"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 pr-12 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.858A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-4.592-4.592a3 3 0 11-4.243-4.243" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
+              />
             </div>
-
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center gap-1.5 text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
-                />
-                ログイン状態を保持
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setMessage('')
-                  setAuthMode('reset')
-                }}
-                className="text-blue-600 hover:underline font-bold"
-              >
-                パスワードをお忘れの方
-              </button>
-            </div>
-
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm shadow transition"
+              className="w-full bg-[#4B8BF5] text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-[#3B72D0] transition"
             >
               ログイン
             </button>
-
             <div className="border-t pt-4 text-center">
               <button
                 type="button"
-                onClick={() => {
-                  setMessage('')
-                  setAuthMode('signup')
-                }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm shadow transition"
+                onClick={() => setAuthMode('signup')}
+                className="w-full bg-green-600 text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-green-700 transition"
               >
                 新規登録はこちら
               </button>
@@ -1191,124 +829,55 @@ export default function Home() {
         {authMode === 'signup' && (
           <form onSubmit={handleSignUp} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">お名前（氏名） *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">お名前 *</label>
               <input
                 type="text"
                 required
-                placeholder="山田 太郎"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス *</label>
               <input
                 type="email"
                 required
-                placeholder="example@mail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">パスワード *</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="6文字以上のパスワード"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 pr-12 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.858A9.954 9.954 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m-4.592-4.592a3 3 0 11-4.243-4.243" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
-
             <button
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm shadow transition"
+              className="w-full bg-green-600 text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-green-700 transition"
             >
               アカウントを作成する
             </button>
-
             <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  setMessage('')
-                  setAuthMode('login')
-                }}
-                className="text-xs text-blue-600 hover:underline font-bold"
+                onClick={() => setAuthMode('login')}
+                className="text-xs text-[#4B8BF5] font-bold underline"
               >
-                &lt; ログイン画面に戻る
-              </button>
-            </div>
-          </form>
-        )}
-
-        {authMode === 'reset' && (
-          <form onSubmit={handlePasswordReset} className="space-y-4">
-            <p className="text-xs text-gray-600">
-              ご登録のメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。
-            </p>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス</label>
-              <input
-                type="email"
-                required
-                placeholder="example@mail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm shadow transition"
-            >
-              再設定メールを送信
-            </button>
-
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMessage('')
-                  setAuthMode('login')
-                }}
-                className="text-xs text-blue-600 hover:underline font-bold"
-              >
-                &lt; ログイン画面に戻る
+                ログイン画面に戻る
               </button>
             </div>
           </form>
         )}
 
         {message && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-gray-800 font-bold text-center break-all">
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-gray-800 font-bold text-center">
             {message}
           </div>
         )}
