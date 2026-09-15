@@ -157,6 +157,7 @@ export default function Home() {
         })
         setUserRole('employee')
         setMessage('新規登録が完了しました！ログイン中...')
+        window.location.href = '/'
       }
     } catch (err: any) {
       setMessage(`エラー: ${err.message || JSON.stringify(err)}`)
