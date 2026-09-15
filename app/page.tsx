@@ -21,7 +21,7 @@ export default function Home() {
   const [rememberMe, setRememberMe] = useState(true)
   const [message, setMessage] = useState('')
 
-  const presetSites = ['みなと', '佐川', 'ヨコレイ', '埠頭', '白鳥', 'Umios(コンテナ)', 'Umios(ピッキング)', 'ローソン', 'フリー']
+  const presetSites = ['みなと', '佐川', 'ヨコレイ', '埠頭', '白鳥', 'Umios(コンテナ)', 'Umios(ピッキング)']
 
   // 管理者タブ（overview: シフト管理, requests: 休み申請, staff: スタッフ一覧, detail: シフト詳細配置）
   const [adminTab, setAdminTab] = useState<'overview' | 'requests' | 'staff' | 'detail'>('overview')
@@ -37,7 +37,6 @@ export default function Home() {
 
   const [targetUserId, setTargetUserId] = useState('')
   const [startTime, setStartTime] = useState('08:00')
-  const [endTime, setEndTime] = useState('17:00')
 
   // カレンダー用ステート（スタッフ用・管理者共通）
   const [currentDate, setCurrentDate] = useState(new Date())
