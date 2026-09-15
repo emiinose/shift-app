@@ -37,6 +37,7 @@ export default function Home() {
 
   const [targetUserId, setTargetUserId] = useState('')
   const [startTime, setStartTime] = useState('08:00')
+  const [endTime, setEndTime] = useState('17:00')
 
   // カレンダー用ステート（スタッフ用・管理者共通）
   const [currentDate, setCurrentDate] = useState(new Date())
