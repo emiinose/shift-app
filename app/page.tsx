@@ -188,6 +188,7 @@ export default function Home() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    window.location.href = '/'
   }
 
   const handleOpenDetail = (dateStr: string, siteName: string) => {
