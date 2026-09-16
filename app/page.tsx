@@ -625,40 +625,56 @@ export default function Home() {
               </div>
             )}
 
-            {adminTab === 'requests' && (
-              <div className="space-y-3">
-                <h2 className="text-sm font-bold text-gray-800 mb-2">📩 休み申請一覧</h2>
-                {leaveRequests.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-4 text-center">休み申請はありません</p>
-                ) : (
-                  <div className="space-y-2">
-                    {leaveRequests.map(req => {
-                      const applicant = allUsers.find(u => u.id === req.user_id)
-                      return (
-                        <div key={req.id} className="p-3 border rounded-lg text-xs space-y-1 bg-gray-50">
-                          <div className="flex justify-between font-bold">
-                            <span>{applicant?.full_name || req.user_email || '不明'}</span>
-                            <span className="text-red-500">{req.leave_date}</span>
-                          </div>
-                          <div className="text-gray-600">現場: {req.site_name}</div>
-                          {req.reason && <div className="text-gray-500 text-[11px]">理由: {req.reason}</div>}
-                          <div className="pt-2 flex justify-end">
-                            <button
-                              onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                              className={`px-3 py-1 rounded text-[10px] font-bold ${
-                                req.status === 'approved' ? 'bg-gray-300 text-gray-700' : 'bg-green-600 text-white'
-                              }`}
-                            >
-                              {req.status === 'approved' ? '許可済み (解除)' : '許可する'}
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+           {adminTab === 'requests' && (
+  <div className="space-y-4 pt-2">
+    {leaveRequests.length === 0 ? (
+      <p className="text-xs text-gray-400 py-8 text-center">休み申請はありません</p>
+    ) : (
+      <div className="space-y-3">
+        {leaveRequests.map(req => {
+          const applicant = allUsers.find(u => u.id === req.user_id)
+          const isApproved = req.status === 'approved'
+
+          return (
+            <div 
+              key={req.id} 
+              className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800"
+            >
+              {/* 日付 */}
+              <div className="w-24 font-normal">
+                {req.leave_date}
               </div>
-            )}
+
+              {/* 名前 */}
+              <div className="w-20 font-normal truncate">
+                {applicant?.full_name || req.user_email || 'Name'}
+              </div>
+
+              {/* 現場名 */}
+              <div className="flex-1 text-center font-normal">
+                現場 : {req.site_name || '佐川'}
+              </div>
+
+              {/* ステータス切替ボタン */}
+              <div className="w-24 text-right">
+                <button
+                  onClick={() => handleToggleLeaveStatus(req.id, req.status)}
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                    isApproved
+                      ? 'border border-[#4B8BF5] text-[#4B8BF5] bg-white hover:bg-blue-50'
+                      : 'bg-[#4B8BF5] text-white hover:bg-[#3B72D0]'
+                  }`}
+                >
+                  {isApproved ? '承認' : '許可する'}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )}
+  </div>
+)}
           </div>
 
           {/* フッター */}
