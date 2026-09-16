@@ -690,7 +690,7 @@ export default function Home() {
           </div>
 
           {/* フッター */}
-
+<div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs divide-x divide-white/30"></div>
   {/* シフトタブ */}
   <button
     onClick={() => setAdminTab('overview')}
@@ -734,6 +734,7 @@ export default function Home() {
       </span>
     )}
   </button>
+  </div>
 
         </div>
 
