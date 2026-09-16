@@ -601,26 +601,38 @@ export default function Home() {
               </div>
             )}
 
-            {adminTab === 'staff' && (
-              <div className="space-y-3">
-                <h2 className="text-sm font-bold text-gray-800 mb-2">👥 スタッフ一覧</h2>
-                <div className="space-y-2">
-                  {allUsers.map(u => (
-                    <div
-                      key={u.id}
-                      onClick={() => handleOpenStaffModal(u)}
-                      className="p-3 border rounded-lg bg-gray-50 hover:bg-blue-50 transition cursor-pointer flex justify-between items-center"
-                    >
-                      <div>
-                        <div className="font-bold text-gray-800 text-xs">{u.full_name || '名称未設定'}</div>
-                        <div className="text-[10px] text-gray-500">{u.email || 'メール未設定'}</div>
-                      </div>
-                      <span className="text-[#4B8BF5] text-xs font-bold">&gt;</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* adminTab === 'staff' の画面描画 */}
+{adminTab === 'staff' && (
+  <div className="flex-1 bg-white">
+    {/* ヘッダー背景（上部のブルー領域） */}
+    <div className="bg-[#4B8BF5] h-32 w-full"></div>
+
+    {/* スタッフリスト領域 */}
+    <div className="px-6 pt-6 space-y-0">
+      {allUsers.map((u) => (
+        <div
+          key={u.id}
+          onClick={() => handleOpenStaffModal(u)}
+          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-gray-800 text-sm font-normal">
+            {u.full_name || 'Name'}
+          </span>
+          {/* 右矢印アイコン */}
+          <svg
+            className="w-4 h-4 text-[#4B8BF5]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
             {/* 休み申請一覧 (管理者UIデザインカンプ対応) */}
             {adminTab === 'requests' && (
