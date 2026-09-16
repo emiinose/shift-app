@@ -605,7 +605,7 @@ export default function Home() {
 {adminTab === 'staff' && (
   <div className="flex-1 bg-white">
     {/* ヘッダー背景（上部のブルー領域） */}
-    <div className="bg-[#4B8BF5] h-32 w-full"></div>
+    
 
     {/* スタッフリスト領域 */}
     <div className="px-6 pt-6 space-y-0">
