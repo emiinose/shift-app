@@ -85,12 +85,21 @@ export default function Home() {
     }
   }
 
+  // データ全取得 (全ユーザー情報も更新)
   const loadAllData = async () => {
     const { data: shiftData } = await supabase.from('shifts').select('*')
     if (shiftData) setShifts(shiftData)
 
     const { data: profileData } = await supabase.from('profiles').select('*')
-    if (profileData) setAllUsers(profileData)
+    if (profileData) {
+      setAllUsers(profileData)
+      // 選択中のスタッフがいれば最新データに同期
+      setSelectedStaff((prev: any) => {
+        if (!prev) return null
+        const updated = profileData.find((u: any) => u.id === prev.id)
+        return updated || prev
+      })
+    }
 
     const { data: reqData } = await supabase.from('site_requirements').select('*')
     if (reqData) setRequirements(reqData)
@@ -284,37 +293,38 @@ export default function Home() {
     setStaffSaveMsg('保存中...')
     const birthDateStr = `${staffForm.birth_year}-${String(staffForm.birth_month).padStart(2, '0')}-${String(staffForm.birth_day).padStart(2, '0')}`
 
+    const updatedData = {
+      full_name: staffForm.full_name,
+      name_kana: staffForm.name_kana,
+      address_city: staffForm.address_city,
+      visa_status: staffForm.visa_status,
+      birth_date: birthDateStr,
+      phone_number: staffForm.phone_number,
+      email: staffForm.email,
+      registration_date: staffForm.registration_date || null,
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({
-        full_name: staffForm.full_name,
-        name_kana: staffForm.name_kana,
-        address_city: staffForm.address_city,
-        visa_status: staffForm.visa_status,
-        birth_date: birthDateStr,
-        phone_number: staffForm.phone_number,
-        email: staffForm.email,
-        registration_date: staffForm.registration_date || null,
-      })
+      .update(updatedData)
       .eq('id', selectedStaff.id)
 
     if (error) {
       setStaffSaveMsg(`エラー: ${error.message}`)
     } else {
       setStaffSaveMsg('保存しました！')
-      await loadAllData()
       
-      const updated = {
-        ...selectedStaff,
-        ...staffForm,
-        birth_date: birthDateStr,
-      }
-      setSelectedStaff(updated)
+      // ローカルステートを即時更新
+      const newStaffObj = { ...selectedStaff, ...updatedData }
+      setSelectedStaff(newStaffObj)
+      
+      // 全体データ再読み込み
+      await loadAllData()
 
       setTimeout(() => {
         setStaffSaveMsg('')
         setStaffSubView('profile')
-      }, 800)
+      }, 600)
     }
   }
 
@@ -773,7 +783,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. スタッフ情報編集画面 (スタッフ情報修正 カンプ対応) */}
+                {/* 3. スタッフ情報編集画面 */}
                 {staffSubView === 'edit' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -1007,7 +1017,7 @@ export default function Home() {
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span>スタッフ</span>
             </button>
