@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation' 
-import { supabase } from './lib/supabase'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -41,7 +40,7 @@ export default function Home() {
 
   // カレンダー用ステート
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [slideDirection, setSlideDirection] = useState<number>(0) // 1: 次月(左へスライド), -1: 前月(右へスライド)
+  const [slideDirection, setSlideDirection] = useState<number>(0)
 
   // 休み申請用ステート
   const [leaveRequests, setLeaveRequests] = useState<any[]>([])
@@ -60,6 +59,7 @@ export default function Home() {
   const [staffSaveMsg, setStaffSaveMsg] = useState('')
 
   useEffect(() => {
+    // パスワードリセット用のハッシュが含まれる場合のリダイレクト処理
     if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
       router.push('/reset-password' + window.location.hash)
       return
@@ -72,7 +72,7 @@ export default function Home() {
         loadAllData()
       }
     })
-  }, [router])
+  }, [router, supabase])
 
   const fetchUserProfile = async (userId: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
@@ -289,7 +289,7 @@ export default function Home() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
   }
 
-  // 月曜始まりのカレンダー生成計算
+  // カレンダー計算
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
@@ -329,7 +329,6 @@ export default function Home() {
 
   const pendingLeaveCount = leaveRequests.filter(r => r.status === 'pending').length
 
-  // アニメーション設定
   const slideVariants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 300 : -300,
@@ -365,77 +364,75 @@ export default function Home() {
             </div>
           </div>
 
-         {/* シフト・詳細タブの時だけカレンダーを表示 */}
-{(adminTab === 'overview' || adminTab === 'detail') && (
-  <>
-    {/* カレンダーヘッダー */}
-    <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
-      <div>月</div>
-      <div>火</div>
-      <div>水</div>
-      <div>木</div>
-      <div>金</div>
-      <div className="text-[#4B8BF5]">土</div>
-      <div className="text-red-500">日</div>
-    </div>
+          {/* シフト・詳細タブの時だけカレンダーを表示 */}
+          {(adminTab === 'overview' || adminTab === 'detail') && (
+            <>
+              <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
+                <div>月</div>
+                <div>火</div>
+                <div>水</div>
+                <div>木</div>
+                <div>金</div>
+                <div className="text-[#4B8BF5]">土</div>
+                <div className="text-red-500">日</div>
+              </div>
 
-    {/* スライド付きカレンダーエリア */}
-    <div className="relative overflow-hidden border-b border-gray-200 h-[288px] touch-pan-y">
-      <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
-        <motion.div
-          key={`${year}-${month}`}
-          custom={slideDirection}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: 'spring', stiffness: 300, damping: 30 },
-            opacity: { duration: 0.15 }
-          }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragEnd={(e, { offset, velocity }) => {
-            const swipe = Math.abs(offset.x) * velocity.x
-            if (offset.x < -60 || swipe < -400) {
-              changeMonth(1) // 左スワイプで翌月へ
-            } else if (offset.x > 60 || swipe > 400) {
-              changeMonth(-1) // 右スワイプで前月へ
-            }
-          }}
-          className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
-        >
-          {calendarDays.map((item, idx) => {
-            const isSelected = selectedDate === item.dateStr
-            let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-            if (item.isCurrentMonth) {
-              if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
-              if (item.dayOfWeek === 6) textColor = 'text-red-500'
-            }
+              <div className="relative overflow-hidden border-b border-gray-200 h-[288px] touch-pan-y">
+                <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+                  <motion.div
+                    key={`${year}-${month}`}
+                    custom={slideDirection}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: 'spring', stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.15 }
+                    }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.2}
+                    onDragEnd={(e, { offset, velocity }) => {
+                      const swipe = Math.abs(offset.x) * velocity.x
+                      if (offset.x < -60 || swipe < -400) {
+                        changeMonth(1)
+                      } else if (offset.x > 60 || swipe > 400) {
+                        changeMonth(-1)
+                      }
+                    }}
+                    className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
+                  >
+                    {calendarDays.map((item, idx) => {
+                      const isSelected = selectedDate === item.dateStr
+                      let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+                      if (item.isCurrentMonth) {
+                        if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                        if (item.dayOfWeek === 6) textColor = 'text-red-500'
+                      }
 
-            return (
-              <button
-                key={idx}
-                onClick={() => {
-                  setSelectedDate(item.dateStr)
-                  if (adminTab === 'detail') setAdminTab('overview')
-                }}
-                className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
-              >
-                <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-                  isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-                }`}>
-                  {item.day}
-                </span>
-              </button>
-            )
-          })}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  </>
-)}
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSelectedDate(item.dateStr)
+                            if (adminTab === 'detail') setAdminTab('overview')
+                          }}
+                          className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative hover:bg-gray-50 transition"
+                        >
+                          <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                            isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                          }`}>
+                            {item.day}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </>
+          )}
 
           {/* メインコンテンツエリア */}
           <div className="p-4 flex-1">
@@ -604,138 +601,119 @@ export default function Home() {
               </div>
             )}
 
-            {/* adminTab === 'staff' の画面描画 */}
-{adminTab === 'staff' && (
-  <div className="flex-1 bg-white">
-    {/* ヘッダー背景（上部のブルー領域） */}
-    <div className="bg-[#4B8BF5] h-32 w-full"></div>
-
-    {/* スタッフリスト領域 */}
-    <div className="px-6 pt-6 space-y-0">
-      {allUsers.map((u) => (
-        <div
-          key={u.id}
-          onClick={() => handleOpenStaffModal(u)}
-          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
-        >
-          <span className="text-gray-800 text-sm font-normal">
-            {u.full_name || 'Name'}
-          </span>
-          {/* 右矢印アイコン */}
-          <svg
-            className="w-4 h-4 text-[#4B8BF5]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
-           {adminTab === 'requests' && (
-  <div className="space-y-4 pt-2">
-    {leaveRequests.length === 0 ? (
-      <p className="text-xs text-gray-400 py-8 text-center">休み申請はありません</p>
-    ) : (
-      <div className="space-y-3">
-        {leaveRequests.map(req => {
-          const applicant = allUsers.find(u => u.id === req.user_id)
-          const isApproved = req.status === 'approved'
-
-          return (
-            <div 
-              key={req.id} 
-              className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800"
-            >
-              {/* 日付 */}
-              <div className="w-24 font-normal">
-                {req.leave_date}
+            {adminTab === 'staff' && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-bold text-gray-800 mb-2">👥 スタッフ一覧</h2>
+                <div className="space-y-2">
+                  {allUsers.map(u => (
+                    <div
+                      key={u.id}
+                      onClick={() => handleOpenStaffModal(u)}
+                      className="p-3 border rounded-lg bg-gray-50 hover:bg-blue-50 transition cursor-pointer flex justify-between items-center"
+                    >
+                      <div>
+                        <div className="font-bold text-gray-800 text-xs">{u.full_name || '名称未設定'}</div>
+                        <div className="text-[10px] text-gray-500">{u.email || 'メール未設定'}</div>
+                      </div>
+                      <span className="text-[#4B8BF5] text-xs font-bold">&gt;</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
 
-              {/* 名前 */}
-              <div className="w-20 font-normal truncate">
-                {applicant?.full_name || req.user_email || 'Name'}
-              </div>
+            {/* 休み申請一覧 (管理者UIデザインカンプ対応) */}
+            {adminTab === 'requests' && (
+              <div className="space-y-4 pt-2">
+                {leaveRequests.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-8 text-center">休み申請はありません</p>
+                ) : (
+                  <div className="space-y-3">
+                    {leaveRequests.map(req => {
+                      const applicant = allUsers.find(u => u.id === req.user_id)
+                      const isApproved = req.status === 'approved'
 
-              {/* 現場名 */}
-              <div className="flex-1 text-center font-normal">
-                現場 : {req.site_name || '佐川'}
-              </div>
+                      return (
+                        <div 
+                          key={req.id} 
+                          className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800"
+                        >
+                          <div className="w-24 font-normal">
+                            {req.leave_date}
+                          </div>
 
-              {/* ステータス切替ボタン */}
-              <div className="w-24 text-right">
-                <button
-                  onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                    isApproved
-                      ? 'border border-[#4B8BF5] text-[#4B8BF5] bg-white hover:bg-blue-50'
-                      : 'bg-[#4B8BF5] text-white hover:bg-[#3B72D0]'
-                  }`}
-                >
-                  {isApproved ? '承認' : '許可する'}
-                </button>
+                          <div className="w-20 font-normal truncate">
+                            {applicant?.full_name || req.user_email || 'Name'}
+                          </div>
+
+                          <div className="flex-1 text-center font-normal">
+                            現場 : {req.site_name || '佐川'}
+                          </div>
+
+                          <div className="w-24 text-right">
+                            <button
+                              onClick={() => handleToggleLeaveStatus(req.id, req.status)}
+                              className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                                isApproved
+                                  ? 'border border-[#4B8BF5] text-[#4B8BF5] bg-white hover:bg-blue-50'
+                                  : 'bg-[#4B8BF5] text-white hover:bg-[#3B72D0]'
+                              }`}
+                            >
+                              {isApproved ? '承認' : '許可する'}
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )
-        })}
-      </div>
-    )}
-  </div>
-)}
+            )}
           </div>
 
           {/* フッター */}
-<div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs divide-x divide-white/30"></div>
-  {/* シフトタブ */}
-  <button
-    onClick={() => setAdminTab('overview')}
-    className={`py-3 flex flex-col items-center justify-center gap-1 ${
-      adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-    }`}
-  >
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-    <span>シフト</span>
-  </button>
+          <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
+            <button
+              onClick={() => setAdminTab('overview')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>シフト</span>
+            </button>
 
-  {/* スタッフタブ (カンプでアクティブな状態) */}
-  <button
-    onClick={() => setAdminTab('staff')}
-    className={`py-3 flex flex-col items-center justify-center gap-1 ${
-      adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-    }`}
-  >
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-    <span>スタッフ</span>
-  </button>
+            <button
+              onClick={() => setAdminTab('staff')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>スタッフ</span>
+            </button>
 
-  {/* 申請タブ */}
-  <button
-    onClick={() => setAdminTab('requests')}
-    className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
-      adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-    }`}
-  >
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-    <span>申請</span>
-    {pendingLeaveCount > 0 && (
-      <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-        {pendingLeaveCount}
-      </span>
-    )}
-  </button>
-  </div>
-
+            <button
+              onClick={() => setAdminTab('requests')}
+              className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
+                adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>申請</span>
+              {pendingLeaveCount > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+                  {pendingLeaveCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* スタッフ詳細編集モーダル */}
