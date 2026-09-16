@@ -604,26 +604,38 @@ export default function Home() {
               </div>
             )}
 
-            {adminTab === 'staff' && (
-              <div className="space-y-3">
-                <h2 className="text-sm font-bold text-gray-800 mb-2">👥 スタッフ一覧</h2>
-                <div className="space-y-2">
-                  {allUsers.map(u => (
-                    <div
-                      key={u.id}
-                      onClick={() => handleOpenStaffModal(u)}
-                      className="p-3 border rounded-lg bg-gray-50 hover:bg-blue-50 transition cursor-pointer flex justify-between items-center"
-                    >
-                      <div>
-                        <div className="font-bold text-gray-800 text-xs">{u.full_name || '名称未設定'}</div>
-                        <div className="text-[10px] text-gray-500">{u.email || 'メール未設定'}</div>
-                      </div>
-                      <span className="text-[#4B8BF5] text-xs font-bold">&gt;</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* adminTab === 'staff' の画面描画 */}
+{adminTab === 'staff' && (
+  <div className="flex-1 bg-white">
+    {/* ヘッダー背景（上部のブルー領域） */}
+    <div className="bg-[#4B8BF5] h-32 w-full"></div>
+
+    {/* スタッフリスト領域 */}
+    <div className="px-6 pt-6 space-y-0">
+      {allUsers.map((u) => (
+        <div
+          key={u.id}
+          onClick={() => handleOpenStaffModal(u)}
+          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-gray-800 text-sm font-normal">
+            {u.full_name || 'Name'}
+          </span>
+          {/* 右矢印アイコン */}
+          <svg
+            className="w-4 h-4 text-[#4B8BF5]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
            {adminTab === 'requests' && (
   <div className="space-y-4 pt-2">
@@ -678,48 +690,52 @@ export default function Home() {
           </div>
 
           {/* フッター */}
-          <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
-            <button
-              onClick={() => setAdminTab('overview')}
-              className={`py-3 flex flex-col items-center justify-center gap-1 ${
-                adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>シフト</span>
-            </button>
+          {/* フッター */}
+<div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs divide-x divide-white/30">
+  {/* シフトタブ */}
+  <button
+    onClick={() => setAdminTab('overview')}
+    className={`py-3 flex flex-col items-center justify-center gap-1 ${
+      adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+    }`}
+  >
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+    <span>シフト</span>
+  </button>
 
-            <button
-              onClick={() => setAdminTab('staff')}
-              className={`py-3 flex flex-col items-center justify-center gap-1 ${
-                adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>スタッフ</span>
-            </button>
+  {/* スタッフタブ (カンプでアクティブな状態) */}
+  <button
+    onClick={() => setAdminTab('staff')}
+    className={`py-3 flex flex-col items-center justify-center gap-1 ${
+      adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+    }`}
+  >
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    <span>スタッフ</span>
+  </button>
 
-            <button
-              onClick={() => setAdminTab('requests')}
-              className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
-                adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span>申請</span>
-              {pendingLeaveCount > 0 && (
-                <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-                  {pendingLeaveCount}
-                </span>
-              )}
-            </button>
-          </div>
+  {/* 申請タブ */}
+  <button
+    onClick={() => setAdminTab('requests')}
+    className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
+      adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+    }`}
+  >
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+    <span>申請</span>
+    {pendingLeaveCount > 0 && (
+      <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+        {pendingLeaveCount}
+      </span>
+    )}
+  </button>
+</div>
         </div>
 
         {/* スタッフ詳細編集モーダル */}
