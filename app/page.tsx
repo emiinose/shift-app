@@ -45,21 +45,24 @@ export default function Home() {
   // 休み申請用ステート
   const [leaveRequests, setLeaveRequests] = useState<any[]>([])
 
-  // スタッフ編集モーダル用ステート
+  // スタッフ表示・編集用ステート
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
+  const [staffSubView, setStaffSubView] = useState<'list' | 'profile' | 'edit'>('list')
   const [staffForm, setStaffForm] = useState({
     full_name: '',
-    name_en: '',
     name_kana: '',
-    registration_date: '',
-    birth_date: '',
     address_city: '',
     visa_status: '',
+    birth_year: '1995',
+    birth_month: '01',
+    birth_day: '01',
+    phone_number: '',
+    email: '',
+    registration_date: '',
   })
   const [staffSaveMsg, setStaffSaveMsg] = useState('')
 
   useEffect(() => {
-    // パスワードリセット用のハッシュが含まれる場合のリダイレクト処理
     if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
       router.push('/reset-password' + window.location.hash)
       return
@@ -240,35 +243,58 @@ export default function Home() {
     }
   }
 
-  const handleOpenStaffModal = (user: any) => {
+  // スタッフ選択処理
+  const handleSelectStaff = (user: any) => {
     setSelectedStaff(user)
+
+    let bYear = '1995'
+    let bMonth = '01'
+    let bDay = '01'
+
+    if (user.birth_date) {
+      const parts = user.birth_date.split('-')
+      if (parts.length === 3) {
+        bYear = parts[0]
+        bMonth = parts[1]
+        bDay = parts[2]
+      }
+    }
+
     setStaffForm({
       full_name: user.full_name || '',
-      name_en: user.name_en || '',
       name_kana: user.name_kana || '',
-      registration_date: user.registration_date || '',
-      birth_date: user.birth_date || '',
       address_city: user.address_city || '',
       visa_status: user.visa_status || '',
+      birth_year: bYear,
+      birth_month: bMonth,
+      birth_day: bDay,
+      phone_number: user.phone_number || '',
+      email: user.email || '',
+      registration_date: user.registration_date || '',
     })
     setStaffSaveMsg('')
+    setStaffSubView('profile')
   }
 
+  // スタッフ情報更新保存
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedStaff) return
 
     setStaffSaveMsg('保存中...')
+    const birthDateStr = `${staffForm.birth_year}-${String(staffForm.birth_month).padStart(2, '0')}-${String(staffForm.birth_day).padStart(2, '0')}`
+
     const { error } = await supabase
       .from('profiles')
       .update({
         full_name: staffForm.full_name,
-        name_en: staffForm.name_en,
         name_kana: staffForm.name_kana,
-        registration_date: staffForm.registration_date || null,
-        birth_date: staffForm.birth_date || null,
         address_city: staffForm.address_city,
         visa_status: staffForm.visa_status,
+        birth_date: birthDateStr,
+        phone_number: staffForm.phone_number,
+        email: staffForm.email,
+        registration_date: staffForm.registration_date || null,
       })
       .eq('id', selectedStaff.id)
 
@@ -276,11 +302,30 @@ export default function Home() {
       setStaffSaveMsg(`エラー: ${error.message}`)
     } else {
       setStaffSaveMsg('保存しました！')
-      loadAllData()
+      await loadAllData()
+      
+      const updated = {
+        ...selectedStaff,
+        ...staffForm,
+        birth_date: birthDateStr,
+      }
+      setSelectedStaff(updated)
+
       setTimeout(() => {
-        setSelectedStaff(null)
-      }, 1000)
+        setStaffSaveMsg('')
+        setStaffSubView('profile')
+      }, 800)
     }
+  }
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-'
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y} 年 ${m}月 ${d}日`
   }
 
   // 月切り替え関数
@@ -349,20 +394,22 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
         <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden">
           
-          {/* ヘッダー */}
-          <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">{year}年{month + 1}月</h1>
+          {/* ヘッダー (スタッフ情報・プロフィール時以外に表示) */}
+          {adminTab !== 'staff' && (
+            <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">{year}年{month + 1}月</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
+                  {userRole === 'admin' ? '管理者' : 'スタッフ'}
+                </span>
+                <button onClick={handleSignOut} className="text-xs text-white/80 hover:text-white underline">
+                  ログアウト
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
-                {userRole === 'admin' ? '管理者' : 'スタッフ'}
-              </span>
-              <button onClick={handleSignOut} className="text-xs text-white/80 hover:text-white underline">
-                ログアウト
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* シフト・詳細タブの時だけカレンダーを表示 */}
           {(adminTab === 'overview' || adminTab === 'detail') && (
@@ -435,9 +482,9 @@ export default function Home() {
           )}
 
           {/* メインコンテンツエリア */}
-          <div className="p-4 flex-1">
+          <div className="flex-1 flex flex-col">
             {(adminTab === 'overview' || adminTab === 'detail') && (
-              <div>
+              <div className="p-4">
                 <div className="text-sm font-bold text-gray-800 mb-3">
                   {selectedDate.replace(/-/g, '/')}
                 </div>
@@ -602,41 +649,291 @@ export default function Home() {
             )}
 
             {/* adminTab === 'staff' の画面描画 */}
-{adminTab === 'staff' && (
-  <div className="flex-1 bg-white">
-    {/* ヘッダー背景（上部のブルー領域） */}
-    
+            {adminTab === 'staff' && (
+              <div className="flex-1 bg-white flex flex-col">
+                {/* 1. スタッフ一覧 */}
+                {staffSubView === 'list' && (
+                  <div className="flex-1 bg-white">
+                    <div className="bg-[#4B8BF5] h-32 w-full"></div>
+                    <div className="px-6 pt-6 space-y-0">
+                      {allUsers.map((u) => (
+                        <div
+                          key={u.id}
+                          onClick={() => handleSelectStaff(u)}
+                          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
+                        >
+                          <span className="text-gray-800 text-sm font-normal">
+                            {u.full_name || 'Name'}
+                          </span>
+                          <svg
+                            className="w-4 h-4 text-[#4B8BF5]"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-    {/* スタッフリスト領域 */}
-    <div className="px-6 pt-6 space-y-0">
-      {allUsers.map((u) => (
-        <div
-          key={u.id}
-          onClick={() => handleOpenStaffModal(u)}
-          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
-        >
-          <span className="text-gray-800 text-sm font-normal">
-            {u.full_name || 'Name'}
-          </span>
-          {/* 右矢印アイコン */}
-          <svg
-            className="w-4 h-4 text-[#4B8BF5]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+                {/* 2. プロフィール閲覧画面 */}
+                {staffSubView === 'profile' && selectedStaff && (
+                  <div className="flex-1 bg-white flex flex-col">
+                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
+                    <div className="px-6 pt-6 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h2 className="text-center text-[#4B8BF5] font-medium text-base mb-6">
+                          プロフィール
+                        </h2>
 
-            {/* 休み申請一覧 (管理者UIデザインカンプ対応) */}
+                        <div className="space-y-0 text-sm">
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">お名前</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {selectedStaff.full_name || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">お名前(フリガナ)</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {selectedStaff.name_kana || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">市区町村</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {selectedStaff.address_city || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">在留資格</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {selectedStaff.visa_status || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">誕生日</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {formatDate(selectedStaff.birth_date)}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">電話番号</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {selectedStaff.phone_number || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">メールアドレス</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2 break-all">
+                              {selectedStaff.email || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
+                            <span className="text-[#4B8BF5] font-normal w-1/3">入社日</span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">
+                              {formatDate(selectedStaff.registration_date)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-center mt-8">
+                          <button
+                            onClick={() => setStaffSubView('edit')}
+                            className="bg-[#4B8BF5] text-white text-xs px-8 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
+                          >
+                            編集
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end mt-12 mb-6">
+                        <button
+                          onClick={() => setStaffSubView('list')}
+                          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
+                        >
+                          <span>戻る</span>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. スタッフ情報編集画面 (スタッフ情報修正 カンプ対応) */}
+                {staffSubView === 'edit' && selectedStaff && (
+                  <div className="flex-1 bg-white flex flex-col">
+                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
+                    <div className="px-6 pt-6 flex-1 flex flex-col">
+                      <h2 className="text-center text-[#4B8BF5] font-medium text-base mb-6">
+                        スタッフ情報
+                      </h2>
+
+                      <form onSubmit={handleSaveStaffInfo} className="space-y-0 text-xs flex-1 flex flex-col justify-between pb-8">
+                        <div className="space-y-0">
+                          
+                          {/* お名前 */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">お名前</label>
+                            <input
+                              type="text"
+                              placeholder="例）山田 太郎"
+                              value={staffForm.full_name}
+                              onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
+
+                          {/* お名前(フリガナ) */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
+                            <input
+                              type="text"
+                              placeholder="例）ヤマダ タロウ"
+                              value={staffForm.name_kana}
+                              onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
+
+                          {/* 市区町村 */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">市区町村</label>
+                            <input
+                              type="text"
+                              placeholder="例）中川区"
+                              value={staffForm.address_city}
+                              onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
+
+                          {/* 在留資格 */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">在留資格</label>
+                            <input
+                              type="text"
+                              placeholder="例）家族滞在"
+                              value={staffForm.visa_status}
+                              onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
+
+                          {/* 誕生日 */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">誕生日</label>
+                            <div className="w-2/3 flex items-center gap-1">
+                              <select
+                                value={staffForm.birth_year}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_year: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 80 }, (_, i) => 1950 + i).map(y => (
+                                  <option key={y} value={y}>{y}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">年</span>
+
+                              <select
+                                value={staffForm.birth_month}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_month: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
+                                  <option key={m} value={m}>{m}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">月</span>
+
+                              <select
+                                value={staffForm.birth_day}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_day: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                                  <option key={d} value={d}>{d}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">日</span>
+                            </div>
+                          </div>
+
+                          {/* 電話番号 */}
+                          <div className="py-2.5 border-b border-[#D6E6FE]">
+                            <div className="flex items-center justify-between">
+                              <label className="text-gray-700 font-normal w-1/3">電話番号</label>
+                              <input
+                                type="text"
+                                placeholder="例）000 0000 0000"
+                                value={staffForm.phone_number}
+                                onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
+                                className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                              />
+                            </div>
+                            <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
+                          </div>
+
+                          {/* メールアドレス */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
+                            <input
+                              type="email"
+                              value={staffForm.email}
+                              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                              className="w-2/3 bg-white border border-[#4B8BF5] px-3 py-1.5 rounded text-gray-800 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* 入社日 */}
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">入社日</label>
+                            <input
+                              type="text"
+                              placeholder="例）1234年05月06日"
+                              value={staffForm.registration_date}
+                              onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
+
+                        </div>
+
+                        {/* 登録ボタン */}
+                        <div className="flex flex-col items-center mt-8">
+                          <button
+                            type="submit"
+                            className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
+                          >
+                            登録
+                          </button>
+                          {staffSaveMsg && (
+                            <p className="text-xs text-[#4B8BF5] font-bold mt-2">{staffSaveMsg}</p>
+                          )}
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 休み申請一覧 */}
             {adminTab === 'requests' && (
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 p-4">
                 {leaveRequests.length === 0 ? (
                   <p className="text-xs text-gray-400 py-8 text-center">休み申請はありません</p>
                 ) : (
@@ -686,7 +983,10 @@ export default function Home() {
           {/* フッター */}
           <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
             <button
-              onClick={() => setAdminTab('overview')}
+              onClick={() => {
+                setAdminTab('overview')
+                setStaffSubView('list')
+              }}
               className={`py-3 flex flex-col items-center justify-center gap-1 ${
                 adminTab === 'overview' || adminTab === 'detail' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
               }`}
@@ -698,7 +998,10 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setAdminTab('staff')}
+              onClick={() => {
+                setAdminTab('staff')
+                setStaffSubView('list')
+              }}
               className={`py-3 flex flex-col items-center justify-center gap-1 ${
                 adminTab === 'staff' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
               }`}
@@ -710,7 +1013,10 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setAdminTab('requests')}
+              onClick={() => {
+                setAdminTab('requests')
+                setStaffSubView('list')
+              }}
               className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
                 adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
               }`}
@@ -727,55 +1033,6 @@ export default function Home() {
             </button>
           </div>
         </div>
-
-        {/* スタッフ詳細編集モーダル */}
-        {selectedStaff && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center border-b pb-2">
-                <h3 className="font-bold text-gray-800 text-sm">スタッフ情報編集</h3>
-                <button onClick={() => setSelectedStaff(null)} className="text-gray-400 font-bold text-lg">✕</button>
-              </div>
-
-              <form onSubmit={handleSaveStaffInfo} className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">名前（氏名）</label>
-                  <input
-                    type="text"
-                    value={staffForm.full_name}
-                    onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
-                    className="w-full p-2 border rounded text-gray-800"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">在留資格</label>
-                  <input
-                    type="text"
-                    value={staffForm.visa_status}
-                    onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
-                    className="w-full p-2 border rounded text-gray-800"
-                  />
-                </div>
-                <div className="pt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStaff(null)}
-                    className="flex-1 py-2 bg-gray-200 text-gray-700 rounded font-bold"
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2 bg-[#4B8BF5] text-white rounded font-bold"
-                  >
-                    保存
-                  </button>
-                </div>
-                {staffSaveMsg && <p className="text-center font-bold text-[#4B8BF5] mt-1">{staffSaveMsg}</p>}
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
