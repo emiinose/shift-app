@@ -4,6 +4,25 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+// ... その他のimport
+
+// ★ ここ（関数の外側）に「ステップ1」の祝日判定コードを貼り付けます
+const HOLIDAYS = [
+  '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', 
+  '2026-03-20', '2026-04-29', '2026-05-03', '2026-05-04', 
+  '2026-05-05', '2026-07-20', '2026-08-11', '2026-09-21', 
+  '2026-09-22', '2026-09-23', '2026-10-12', '2026-11-03', 
+  '2026-11-23',
+]
+
+const isHoliday = (dateStr: string) => {
+  return HOLIDAYS.includes(dateStr)
+}
+
+export default function Home() {
+  // ... コンポーネント内の処理
 
 export default function Home() {
   const router = useRouter()
@@ -461,11 +480,14 @@ export default function Home() {
                     className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
                   >
                     {calendarDays.map((item, idx) => {
-                      const isSelected = selectedDate === item.dateStr
+                     const isSelected = selectedDate === item.dateStr
+                    const isHoliday = HOLIDAYS.includes(item.dateStr) // ★ 祝日判定
+
                       let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-                      if (item.isCurrentMonth) {
-                        if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
-                        if (item.dayOfWeek === 6) textColor = 'text-red-500'
+  
+                       if (item.isCurrentMonth) {
+                       if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]' // 土曜日：青
+                       if (item.dayOfWeek === 6 || isHoliday) textColor = 'text-red-500' // 日曜日 または 祝日：赤
                       }
 
                       return (
