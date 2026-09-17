@@ -64,6 +64,7 @@ export default function Home() {
   const [leaveForm, setLeaveForm] = useState({
     nameKana: '',
     siteName: '佐川',
+    leaveDate: selectedDate,
     reason: '',
   })
   const [leaveSubmitting, setLeaveSubmitting] = useState(false)
@@ -286,7 +287,7 @@ export default function Home() {
       {
         user_id: session.user.id,
         user_email: session.user.email,
-        leave_date: selectedDate,
+        leave_date: leaveForm.leaveDate,
         site_name: leaveForm.siteName,
         reason: leaveForm.reason,
         status: 'pending',
@@ -584,7 +585,7 @@ export default function Home() {
             {/* --- 申請タブ表示 --- */}
             {adminTab === 'requests' && (
               <div className="flex-1 bg-white flex flex-col relative">
-                {/* 1. 休み申請 一覧画面 (休み申請（スタッフ）.png 準拠) */}
+                {/* 1. 休み申請 一覧画面 */}
                 {employeeSubView === 'list' && (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -648,7 +649,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 2. 申請フォーム画面 (申請フォーム（スタッフ）.png 準拠) */}
+                {/* 2. 申請フォーム画面 */}
                 {employeeSubView === 'form' && (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -656,32 +657,30 @@ export default function Home() {
                       <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
                         {/* 角丸ブルーの枠線で囲まれた入力エリア */}
                         <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
-                          {/* お名前(フリガナ) */}
-                         {/* お名前(フリガナ) - 自動入力＆変更不可 */}
-                        <div className="flex items-center justify-between">
-                         <label className="text-gray-700 w-1/3 font-normal">
-                       お名前
-                        </label>
-                       <input
-                      type="text"
-                       disabled
-                       value={leaveForm.nameKana || userProfile?.name_kana || ''}
-                       className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed"
-                        />
-                      </div>
-                           
-                          {/* ★追加：休み希望日 */}
+                          {/* お名前(フリガナ) - 自動入力＆変更不可 */}
                           <div className="flex items-center justify-between">
-                          <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
-                           <input
-                               type="date"
-                                required
-                               value={leaveForm.leaveDate}
-                               onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
-                               className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
-                             />
-                           </div>
-
+                            <label className="text-gray-700 w-1/3 font-normal">
+                              お名前(フリガナ)
+                            </label>
+                            <input
+                              type="text"
+                              disabled
+                              value={leaveForm.nameKana || userProfile?.name_kana || ''}
+                              className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed font-normal"
+                            />
+                          </div>
+                           
+                          {/* 休み希望日 */}
+                          <div className="flex items-center justify-between">
+                            <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
+                            <input
+                              type="date"
+                              required
+                              value={leaveForm.leaveDate}
+                              onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
+                              className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
+                            />
+                          </div>
 
                           {/* 現場 */}
                           <div className="flex items-center justify-between">
@@ -694,7 +693,7 @@ export default function Home() {
                               >
                                 {presetSites.map((site) => (
                                   <option key={site} value={site}>
-                                  {site}
+                                    {site}
                                   </option>
                                 ))}
                               </select>
