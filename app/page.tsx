@@ -235,10 +235,21 @@ export default function Home() {
     setCustomDebanInput('')
   }
 
+  // ★ ここ（handleAddStaff 内）に組み込みます ★
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!targetUserId) {
       alert('スタッフを選択してください')
+      return
+    }
+
+    // 重複判定
+    const isAlreadyAssigned = shifts.some(
+      (s) => s.work_date === selectedDate && s.site_name === selectedSite && s.user_id === targetUserId
+    )
+
+    if (isAlreadyAssigned) {
+      alert('このスタッフはすでにこの現場のシフトに登録されています。')
       return
     }
 
