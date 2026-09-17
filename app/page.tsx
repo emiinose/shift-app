@@ -35,7 +35,7 @@ export default function Home() {
   // プリセット現場名
   const presetSites = ['みなと', '佐川', 'ヨコレイ', '埠頭', '白鳥', 'Umios(コンテナ)', 'Umios(ピッキング)']
 
-  // 管理者タブ
+  // タブステート
   const [adminTab, setAdminTab] = useState<'overview' | 'requests' | 'staff' | 'detail'>('overview')
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -98,7 +98,6 @@ export default function Home() {
     }
   }
 
-  // データ全取得 (全ユーザー情報も更新)
   const loadAllData = async () => {
     const { data: shiftData } = await supabase.from('shifts').select('*')
     if (shiftData) setShifts(shiftData)
@@ -106,7 +105,6 @@ export default function Home() {
     const { data: profileData } = await supabase.from('profiles').select('*')
     if (profileData) {
       setAllUsers(profileData)
-      // 選択中のスタッフがいれば最新データに同期
       setSelectedStaff((prev: any) => {
         if (!prev) return null
         const updated = profileData.find((u: any) => u.id === prev.id)
@@ -265,7 +263,6 @@ export default function Home() {
     }
   }
 
-  // スタッフ選択処理
   const handleSelectStaff = (user: any) => {
     setSelectedStaff(user)
 
@@ -298,7 +295,6 @@ export default function Home() {
     setStaffSubView('profile')
   }
 
-  // スタッフ情報更新保存
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedStaff) return
@@ -326,12 +322,8 @@ export default function Home() {
       setStaffSaveMsg(`エラー: ${error.message}`)
     } else {
       setStaffSaveMsg('保存しました！')
-      
-      // ローカルステートを即時更新
       const newStaffObj = { ...selectedStaff, ...updatedData }
       setSelectedStaff(newStaffObj)
-      
-      // 全体データ再読み込み
       await loadAllData()
 
       setTimeout(() => {
@@ -351,13 +343,11 @@ export default function Home() {
     return `${y} 年 ${m}月 ${d}日`
   }
 
-  // 月切り替え関数
   const changeMonth = (offset: number) => {
     setSlideDirection(offset)
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
   }
 
-  // カレンダー計算
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
@@ -413,11 +403,176 @@ export default function Home() {
   }
 
   if (session) {
+    // ==========================================
+    // 1. スタッフ用画面 (デザインカンプを適用)
+    // ==========================================
+    if (userRole === 'employee') {
+      const dayShifts = shifts.filter(
+        (s) => s.work_date === selectedDate && s.user_id === session.user.id
+      )
+
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
+          <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden">
+            
+            {/* ヘッダー */}
+            <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  {year}年{month + 1}月
+                </h1>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="text-xs text-white/80 hover:text-white underline"
+              >
+                ログアウト
+              </button>
+            </div>
+
+            {/* カレンダー */}
+            <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
+              <div>月</div>
+              <div>火</div>
+              <div>水</div>
+              <div>木</div>
+              <div>金</div>
+              <div className="text-[#4B8BF5]">土</div>
+              <div className="text-red-500">日</div>
+            </div>
+
+            <div className="relative overflow-hidden border-b border-gray-200 h-[288px] touch-pan-y">
+              <AnimatePresence initial={false} custom={slideDirection} mode="popLayout">
+                <motion.div
+                  key={`${year}-${month}`}
+                  custom={slideDirection}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: 'spring', stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.15 },
+                  }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.2}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipe = Math.abs(offset.x) * velocity.x
+                    if (offset.x < -60 || swipe < -400) {
+                      changeMonth(1)
+                    } else if (offset.x > 60 || swipe > 400) {
+                      changeMonth(-1)
+                    }
+                  }}
+                  className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
+                >
+                  {calendarDays.map((item, idx) => {
+                    const isSelected = selectedDate === item.dateStr
+                    const isHolidayDate = isHoliday(item.dateStr)
+
+                    // 自分のシフトが入っているか（★表示用）
+                    const hasMyShift = shifts.some(
+                      (s) => s.work_date === item.dateStr && s.user_id === session.user.id
+                    )
+
+                    let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
+                    if (item.isCurrentMonth) {
+                      if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                      if (item.dayOfWeek === 6 || isHolidayDate) textColor = 'text-red-500'
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedDate(item.dateStr)}
+                        className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1 relative hover:bg-gray-50 transition"
+                      >
+                        <span
+                          className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                            isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                          }`}
+                        >
+                          {item.day}
+                        </span>
+
+                        {hasMyShift && (
+                          <span className="text-yellow-400 text-xs leading-none mt-0.5">★</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* 確定シフトリスト */}
+            <div className="flex-1 p-4">
+              {dayShifts.length === 0 ? (
+                <div className="text-xs text-gray-400 py-4 text-center">
+                  この日のシフトはありません
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {dayShifts.map((s) => {
+                    const d = new Date(s.work_date)
+                    const dateLabel = `${d.getMonth() + 1}/${d.getDate()}`
+                    const timeLabel = s.start_time ? s.start_time.slice(0, 5) : ''
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-6 py-2 border-b border-[#BCE0FD] text-xs text-gray-800"
+                      >
+                        <span className="font-normal">{dateLabel}</span>
+                        <span className="font-normal">{s.site_name}</span>
+                        <span className="font-normal">{timeLabel}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* スタッフ用フッター（シフト / 申請 の2分割） */}
+            <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-2 text-center text-xs border-t border-white/20">
+              <button
+                onClick={() => setAdminTab('overview')}
+                className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                  adminTab === 'overview' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>シフト</span>
+              </button>
+
+              <button
+                onClick={() => setAdminTab('requests')}
+                className={`py-3 flex flex-col items-center justify-center gap-1 ${
+                  adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>申請</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )
+    }
+
+    // ==========================================
+    // 2. 管理者用画面 (管理者のみ閲覧可能)
+    // ==========================================
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
         <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden">
           
-          {/* ヘッダー (スタッフ情報・プロフィール時以外に表示) */}
           {adminTab !== 'staff' && (
             <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
               <div>
@@ -425,7 +580,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
-                  {userRole === 'admin' ? '管理者' : 'スタッフ'}
+                  管理者
                 </span>
                 <button onClick={handleSignOut} className="text-xs text-white/80 hover:text-white underline">
                   ログアウト
@@ -434,7 +589,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* シフト・詳細タブの時だけカレンダーを表示 */}
           {(adminTab === 'overview' || adminTab === 'detail') && (
             <>
               <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
@@ -474,14 +628,13 @@ export default function Home() {
                     className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
                   >
                     {calendarDays.map((item, idx) => {
-                     const isSelected = selectedDate === item.dateStr
-                    const isHoliday = HOLIDAYS.includes(item.dateStr) // ★ 祝日判定
+                      const isSelected = selectedDate === item.dateStr
+                      const isHolidayDate = isHoliday(item.dateStr)
 
                       let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-  
-                       if (item.isCurrentMonth) {
-                       if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]' // 土曜日：青
-                       if (item.dayOfWeek === 6 || isHoliday) textColor = 'text-red-500' // 日曜日 または 祝日：赤
+                      if (item.isCurrentMonth) {
+                        if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                        if (item.dayOfWeek === 6 || isHolidayDate) textColor = 'text-red-500'
                       }
 
                       return (
@@ -507,7 +660,6 @@ export default function Home() {
             </>
           )}
 
-          {/* メインコンテンツエリア */}
           <div className="flex-1 flex flex-col">
             {(adminTab === 'overview' || adminTab === 'detail') && (
               <div className="p-4">
@@ -674,10 +826,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* adminTab === 'staff' の画面描画 */}
             {adminTab === 'staff' && (
               <div className="flex-1 bg-white flex flex-col">
-                {/* 1. スタッフ一覧 */}
                 {staffSubView === 'list' && (
                   <div className="flex-1 bg-white">
                     <div className="bg-[#4B8BF5] h-32 w-full"></div>
@@ -691,13 +841,7 @@ export default function Home() {
                           <span className="text-gray-800 text-sm font-normal">
                             {u.full_name || 'Name'}
                           </span>
-                          <svg
-                            className="w-4 h-4 text-[#4B8BF5]"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
+                          <svg className="w-4 h-4 text-[#4B8BF5]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
@@ -706,7 +850,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 2. プロフィール閲覧画面 */}
                 {staffSubView === 'profile' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -719,58 +862,35 @@ export default function Home() {
                         <div className="space-y-0 text-sm">
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">お名前</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {selectedStaff.full_name || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{selectedStaff.full_name || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">お名前(フリガナ)</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {selectedStaff.name_kana || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{selectedStaff.name_kana || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">市区町村</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {selectedStaff.address_city || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{selectedStaff.address_city || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">在留資格</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {selectedStaff.visa_status || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{selectedStaff.visa_status || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">誕生日</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {formatDate(selectedStaff.birth_date)}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{formatDate(selectedStaff.birth_date)}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">電話番号</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {selectedStaff.phone_number || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{selectedStaff.phone_number || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">メールアドレス</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2 break-all">
-                              {selectedStaff.email || '-'}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2 break-all">{selectedStaff.email || '-'}</span>
                           </div>
-
                           <div className="flex justify-between items-center py-3.5 border-b border-[#D6E6FE]">
                             <span className="text-[#4B8BF5] font-normal w-1/3">入社日</span>
-                            <span className="text-gray-800 font-normal w-2/3 pl-2">
-                              {formatDate(selectedStaff.registration_date)}
-                            </span>
+                            <span className="text-gray-800 font-normal w-2/3 pl-2">{formatDate(selectedStaff.registration_date)}</span>
                           </div>
                         </div>
 
@@ -799,7 +919,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. スタッフ情報編集画面 */}
                 {staffSubView === 'edit' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -810,8 +929,6 @@ export default function Home() {
 
                       <form onSubmit={handleSaveStaffInfo} className="space-y-0 text-xs flex-1 flex flex-col justify-between pb-8">
                         <div className="space-y-0">
-                          
-                          {/* お名前 */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">お名前</label>
                             <input
@@ -823,7 +940,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* お名前(フリガナ) */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
                             <input
@@ -835,7 +951,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* 市区町村 */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">市区町村</label>
                             <input
@@ -847,7 +962,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* 在留資格 */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">在留資格</label>
                             <input
@@ -859,7 +973,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* 誕生日 */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">誕生日</label>
                             <div className="w-2/3 flex items-center gap-1">
@@ -898,7 +1011,6 @@ export default function Home() {
                             </div>
                           </div>
 
-                          {/* 電話番号 */}
                           <div className="py-2.5 border-b border-[#D6E6FE]">
                             <div className="flex items-center justify-between">
                               <label className="text-gray-700 font-normal w-1/3">電話番号</label>
@@ -913,7 +1025,6 @@ export default function Home() {
                             <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
                           </div>
 
-                          {/* メールアドレス */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
                             <input
@@ -924,7 +1035,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* 入社日 */}
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">入社日</label>
                             <input
@@ -935,10 +1045,8 @@ export default function Home() {
                               className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
                             />
                           </div>
-
                         </div>
 
-                        {/* 登録ボタン */}
                         <div className="flex flex-col items-center mt-8">
                           <button
                             type="submit"
@@ -957,7 +1065,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* 休み申請一覧 */}
             {adminTab === 'requests' && (
               <div className="space-y-4 p-4">
                 {leaveRequests.length === 0 ? (
@@ -973,18 +1080,9 @@ export default function Home() {
                           key={req.id} 
                           className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800"
                         >
-                          <div className="w-24 font-normal">
-                            {req.leave_date}
-                          </div>
-
-                          <div className="w-20 font-normal truncate">
-                            {applicant?.full_name || req.user_email || 'Name'}
-                          </div>
-
-                          <div className="flex-1 text-center font-normal">
-                            現場 : {req.site_name || '佐川'}
-                          </div>
-
+                          <div className="w-24 font-normal">{req.leave_date}</div>
+                          <div className="w-20 font-normal truncate">{applicant?.full_name || req.user_email || 'Name'}</div>
+                          <div className="flex-1 text-center font-normal">現場 : {req.site_name || '佐川'}</div>
                           <div className="w-24 text-right">
                             <button
                               onClick={() => handleToggleLeaveStatus(req.id, req.status)}
@@ -1006,7 +1104,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* フッター */}
+          {/* 管理者用フッター（3分割） */}
           <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
             <button
               onClick={() => {
@@ -1063,7 +1161,7 @@ export default function Home() {
     )
   }
 
-  // ログイン画面
+  // ログイン未完了時
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
