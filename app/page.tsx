@@ -1,14 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import React, { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-// ... その他のimport
 
-// ★ ここ（関数の外側）に「ステップ1」の祝日判定コードを貼り付けます
+// 日本の祝日データ
 const HOLIDAYS = [
   '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', 
   '2026-03-20', '2026-04-29', '2026-05-03', '2026-05-04', 
@@ -20,9 +17,6 @@ const HOLIDAYS = [
 const isHoliday = (dateStr: string) => {
   return HOLIDAYS.includes(dateStr)
 }
-
-export default function Home() {
-  // ... コンポーネント内の処理
 
 export default function Home() {
   const router = useRouter()
