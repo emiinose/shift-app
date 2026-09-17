@@ -1470,15 +1470,21 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">パスワード</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
-              />
-            </div>
+                 <label className="block text-xs font-bold mb-1 text-gray-700">
+                  パスワード
+                 </label>
+               <input
+                   type="password"
+                   value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                    placeh older="パスワードを入力"
+                    className="w-full p-2 border rounded text-sm text-gray-800 bg-white"
+                     minLength={6} // HTML5バリデーションで6桁未満を自動ブロックする場合
+                    required
+                      />
+                     {/* ★ ここに「6桁以上」の表記を追加 */}
+                        <p className="text-[10px] text-gray-500 mt-1">※ 半角英数字6桁以上で入力してください</p>
+                 </div>
             <button
               type="submit"
               className="w-full bg-[#4B8BF5] text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-[#3B72D0] transition"
