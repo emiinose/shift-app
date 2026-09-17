@@ -1033,17 +1033,29 @@ export default function Home() {
                     <form onSubmit={handleAddStaff} className="border-t pt-4 space-y-3">
                       <h3 className="font-bold text-gray-700 text-xs">スタッフを追加</h3>
                       <select
-                        value={targetUserId}
-                        onChange={(e) => setTargetUserId(e.target.value)}
+                       value={targetUserId}
+                       onChange={(e) => setTargetUserId(e.target.value)}
                         className="w-full p-2 border rounded text-gray-800 text-xs bg-white"
-                      >
+                        >
                         <option value="">スタッフを選択...</option>
-                        {allUsers.map(u => (
-                          <option key={u.id} value={u.id}>
+                         {allUsers.map(u => {
+    // 選択中の「日付」と「現場」にすでに割り当てられているか判定
+                         const isAlreadyAssigned = shifts.some(
+                         s => s.work_date === selectedDate && s.site_name === selectedSite && s.user_id === u.id
+                            )
+
+                        return (
+                           <option 
+                            key={u.id} 
+                            value={u.id}
+                            disabled={isAlreadyAssigned} // ★ すでに割り当て済みの場合は選択不可にする
+                           >
                             {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
-                          </option>
-                        ))}
-                      </select>
+                            {isAlreadyAssigned ? ' (配置済み)' : ''}
+                            </option>
+                          )
+                       })}
+                       </select>
 
                       <div className="flex gap-2">
                         <input
