@@ -71,7 +71,7 @@ export default function Home() {
 
   // スタッフ表示・編集用ステート
   const [selectedStaff, setSelectedStaff] = useState<any>(null)
-  const [staffSubView, setStaffSubView] = useState<'list' | 'profile' | 'edit'>('list')
+  const [staffSubView, setStaffSubView] = useState<'list' | 'profile' | 'edit' | 'add'>('list')
   const [staffForm, setStaffForm] = useState({
     full_name: '',
     name_kana: '',
@@ -337,14 +337,33 @@ export default function Home() {
     setStaffSubView('profile')
   }
 
+  // 新規スタッフ追加画面の呼び出し
+  const handleOpenAddStaffForm = () => {
+    setSelectedStaff(null)
+    setStaffForm({
+      full_name: '',
+      name_kana: '',
+      address_city: '',
+      visa_status: '',
+      birth_year: '1995',
+      birth_month: '01',
+      birth_day: '01',
+      phone_number: '',
+      email: '',
+      registration_date: '',
+    })
+    setStaffSaveMsg('')
+    setStaffSubView('add')
+  }
+
+  // スタッフ情報の保存（更新または新規作成）
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedStaff) return
 
     setStaffSaveMsg('保存中...')
     const birthDateStr = `${staffForm.birth_year}-${String(staffForm.birth_month).padStart(2, '0')}-${String(staffForm.birth_day).padStart(2, '0')}`
 
-    const updatedData = {
+    const staffData = {
       full_name: staffForm.full_name,
       name_kana: staffForm.name_kana,
       address_city: staffForm.address_city,
@@ -353,24 +372,27 @@ export default function Home() {
       phone_number: staffForm.phone_number,
       email: staffForm.email,
       registration_date: staffForm.registration_date || null,
+      role: 'employee',
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updatedData)
-      .eq('id', selectedStaff.id)
+    let error
+    if (staffSubView === 'add') {
+      const res = await supabase.from('profiles').insert([staffData])
+      error = res.error
+    } else if (selectedStaff) {
+      const res = await supabase.from('profiles').update(staffData).eq('id', selectedStaff.id)
+      error = res.error
+    }
 
     if (error) {
       setStaffSaveMsg(`エラー: ${error.message}`)
     } else {
       setStaffSaveMsg('保存しました！')
-      const newStaffObj = { ...selectedStaff, ...updatedData }
-      setSelectedStaff(newStaffObj)
       await loadAllData()
 
       setTimeout(() => {
         setStaffSaveMsg('')
-        setStaffSubView('profile')
+        setStaffSubView('list')
       }, 600)
     }
   }
@@ -517,7 +539,6 @@ export default function Home() {
                         const isSelected = selectedDate === item.dateStr
                         const isHolidayDate = isHoliday(item.dateStr)
 
-                        // 自分のシフトが入っているか（★表示用）
                         const hasMyShift = shifts.some(
                           (s) => s.work_date === item.dateStr && s.user_id === session.user.id
                         )
@@ -655,9 +676,7 @@ export default function Home() {
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
                     <div className="px-6 pt-8 flex-1 flex flex-col justify-between">
                       <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
-                        {/* 角丸ブルーの枠線で囲まれた入力エリア */}
                         <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
-                          {/* お名前(フリガナ) - 自動入力＆変更不可 */}
                           <div className="flex items-center justify-between">
                             <label className="text-gray-700 w-1/3 font-normal">
                               お名前(フリガナ)
@@ -670,7 +689,6 @@ export default function Home() {
                             />
                           </div>
                            
-                          {/* 休み希望日 */}
                           <div className="flex items-center justify-between">
                             <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
                             <input
@@ -682,7 +700,6 @@ export default function Home() {
                             />
                           </div>
 
-                          {/* 現場 */}
                           <div className="flex items-center justify-between">
                             <label className="text-gray-700 w-1/3 font-normal">現場</label>
                             <div className="w-2/3 relative">
@@ -705,7 +722,6 @@ export default function Home() {
                             </div>
                           </div>
 
-                          {/* 理由 */}
                           <div className="flex items-start justify-between">
                             <label className="text-gray-700 w-1/3 font-normal pt-1">理由</label>
                             <textarea
@@ -718,7 +734,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* 送信ボタン */}
                         <div className="flex justify-center pt-2">
                           <button
                             type="submit"
@@ -730,7 +745,6 @@ export default function Home() {
                         </div>
                       </form>
 
-                      {/* 戻る リンク */}
                       <div className="flex justify-end pb-8">
                         <button
                           type="button"
@@ -749,7 +763,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* スタッフ用フッター（シフト / 申請 の2分割） */}
+            {/* スタッフ用フッター */}
             <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-2 text-center text-xs border-t border-white/20 z-10">
               <button
                 onClick={() => {
@@ -792,7 +806,7 @@ export default function Home() {
     // ==========================================
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
-        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden">
+        <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden relative">
           
           {adminTab !== 'staff' && (
             <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
@@ -1048,11 +1062,12 @@ export default function Home() {
             )}
 
             {adminTab === 'staff' && (
-              <div className="flex-1 bg-white flex flex-col">
+              <div className="flex-1 bg-white flex flex-col relative">
+                {/* 1. スタッフ一覧 */}
                 {staffSubView === 'list' && (
-                  <div className="flex-1 bg-white">
-                    <div className="bg-[#4B8BF5] h-32 w-full"></div>
-                    <div className="px-6 pt-6 space-y-0">
+                  <div className="flex-1 bg-white flex flex-col">
+                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
+                    <div className="px-6 pt-6 flex-1 pb-24">
                       {allUsers.map((u) => (
                         <div
                           key={u.id}
@@ -1068,9 +1083,22 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
+
+                    {/* ★新規スタッフ追加のフローティング プラスボタン */}
+                    <div className="absolute right-8 bottom-20 z-10">
+                      <button
+                        onClick={handleOpenAddStaffForm}
+                        className="w-14 h-14 bg-[#3B72D0] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#2B5290] transition-colors"
+                      >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
 
+                {/* 2. スタッフプロフィール閲覧 */}
                 {staffSubView === 'profile' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -1140,12 +1168,13 @@ export default function Home() {
                   </div>
                 )}
 
-                {staffSubView === 'edit' && selectedStaff && (
+                {/* 3. スタッフ編集・新規追加フォーム */}
+                {(staffSubView === 'edit' || staffSubView === 'add') && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
                     <div className="px-6 pt-6 flex-1 flex flex-col">
                       <h2 className="text-center text-[#4B8BF5] font-medium text-base mb-6">
-                        スタッフ情報
+                        スタッフ情報{staffSubView === 'add' ? '追加' : ''}
                       </h2>
 
                       <form onSubmit={handleSaveStaffInfo} className="space-y-0 text-xs flex-1 flex flex-col justify-between pb-8">
@@ -1280,6 +1309,20 @@ export default function Home() {
                           )}
                         </div>
                       </form>
+
+                      {/* 戻る リンク */}
+                      <div className="flex justify-end pb-8">
+                        <button
+                          type="button"
+                          onClick={() => setStaffSubView('list')}
+                          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
+                        >
+                          <span>戻る</span>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1326,7 +1369,7 @@ export default function Home() {
           </div>
 
           {/* 管理者用フッター（3分割） */}
-          <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20">
+          <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20 z-20">
             <button
               onClick={() => {
                 setAdminTab('overview')
