@@ -669,6 +669,13 @@ export default function Home() {
                               className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none"
                             />
                           </div>
+                           const [leaveForm, setLeaveForm] = useState({
+                             nameKana: '',
+                              siteName: '佐川',
+                              leaveDate: selectedDate, // 追加
+                              reason: '',
+                              })
+
 
                           {/* 現場 */}
                           <div className="flex items-center justify-between">
@@ -681,7 +688,7 @@ export default function Home() {
                               >
                                 {presetSites.map((site) => (
                                   <option key={site} value={site}>
-                                    例）{site}
+                                  {site}
                                   </option>
                                 ))}
                               </select>
