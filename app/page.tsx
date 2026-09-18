@@ -18,6 +18,12 @@ const isHoliday = (dateStr: string) => {
   return HOLIDAYS.includes(dateStr)
 }
 
+// 電話番号をSupabase認証用の内部メールアドレス形式に変換
+  const formatPhoneToEmail = (rawPhone: string) => {
+    const cleaned = rawPhone.replace(/\D/g, '') // 数字以外を削除
+    return `${cleaned}@shift-app.local`
+  }
+
 export default function Home() {
   const router = useRouter()
   const supabase = createClient()
@@ -28,7 +34,7 @@ export default function Home() {
   // 認証用ステート
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'reset'>('login')
   const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
 
@@ -135,15 +141,16 @@ export default function Home() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      setMessage('メールアドレスとパスワードを入力してください')
+    if (!phone || !password) {
+      setMessage('電話番号とパスワードを入力してください')
       return
     }
 
     setMessage('ログイン処理中...')
     try {
+      const internalEmail = formatPhoneToEmail(phone)
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: internalEmail,
         password: password.trim(),
       })
 
@@ -160,8 +167,8 @@ export default function Home() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!fullName.trim() || !email || !password) {
-      setMessage('お名前、メールアドレス、パスワードを入力してください')
+    if (!fullName.trim() || !phone || !password) {
+      setMessage('お名前、電話番号、パスワードを入力してください')
       return
     }
 
@@ -173,8 +180,11 @@ export default function Home() {
 
     setMessage('新規登録処理中...')
     try {
+      const internalEmail = formatPhoneToEmail(phone)
+      const cleanedPhone = phone.replace(/\D/g, '')
+
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: internalEmail,
         password: password.trim(),
         options: {
           data: { full_name: fullName.trim() },
@@ -187,7 +197,8 @@ export default function Home() {
         await supabase.from('profiles').upsert({
           id: data.user.id,
           role: 'employee',
-          email: email.trim(),
+          email: internalEmail,
+          phone_number: cleanedPhone,
           full_name: fullName.trim(),
         })
         setUserRole('employee')
@@ -1466,12 +1477,13 @@ export default function Home() {
         {authMode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">電話番号</label>
               <input
-                type="email"
+                type="tel"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="例）09012345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
@@ -1519,12 +1531,13 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">電話番号 *</label>
               <input
-                type="email"
+                type="tel"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="例）09012345678（ハイフンなし）"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
@@ -1539,7 +1552,6 @@ export default function Home() {
                 placeholder="パスワードを入力"
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              {/* ★ 新規登録画面側に「6桁以上」の表記を追加 */}
               <p className="text-[10px] text-gray-500 mt-1">※ 半角英数字6桁以上で入力してください</p>
             </div>
             <button
