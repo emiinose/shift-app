@@ -1485,10 +1485,13 @@ export default function Home() {
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-gray-700 mb-1">
+             <div className="mb-4">
+              {/* 1. パスワード（左上） */}
+              <label className="block text-xs font-bold text-gray-700 mb-1">
                 パスワード
               </label>
+
+              {/* 2. パスワード入力枠 */}
               <input
                 type="password"
                 required
@@ -1497,7 +1500,8 @@ export default function Home() {
                 placeholder="パスワードを入力"
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
-              {/* 入力欄の下に右寄せで配置 */}
+
+              {/* 3. 入力枠の右下に配置 */}
               <div className="text-right mt-1.5">
                 <button
                   type="button"
