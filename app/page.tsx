@@ -1490,14 +1490,6 @@ export default function Home() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   パスワード
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="パスワードを入力"
-                  className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
-                 />
                  {/*パスワード入力枠の下に配置（右寄せ）*/}
                  <div className="text-right mt-1.5"> 
                 <button
