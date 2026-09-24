@@ -1499,7 +1499,8 @@ export default function Home() {
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
-           
+            {/* パスワード入力枠の下に配置（右寄せ） */}
+              <div className="text-right mt-1.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1511,7 +1512,7 @@ export default function Home() {
                   パスワードをお忘れの方
                 </button>
               </div>
-            
+            </div>
             <button
               type="submit"
               className="w-full bg-[#4B8BF5] text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-[#3B72D0] transition"
