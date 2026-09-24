@@ -1487,9 +1487,19 @@ export default function Home() {
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-gray-700">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   パスワード
                 </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="パスワードを入力"
+                  className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
+                 />
+                 {/*パスワード入力枠の下に配置（右寄せ）*/}
+                 <div className="text-right mt-1.5"> 
                 <button
                   type="button"
                   onClick={() => {
@@ -1500,6 +1510,7 @@ export default function Home() {
                 >
                   パスワードをお忘れの方
                 </button>
+              </div>
               </div>
               <input
                 type="password"
