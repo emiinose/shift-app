@@ -18,12 +18,6 @@ const isHoliday = (dateStr: string) => {
   return HOLIDAYS.includes(dateStr)
 }
 
-// 電話番号をSupabase認証用の内部メールアドレス形式に変換
-  const formatPhoneToEmail = (rawPhone: string) => {
-    const cleaned = rawPhone.replace(/\D/g, '') // 数字以外を削除
-    return `${cleaned}@shift-app.local`
-  }
-
 export default function Home() {
   const router = useRouter()
   const supabase = createClient()
@@ -34,7 +28,7 @@ export default function Home() {
   // 認証用ステート
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'reset'>('login')
   const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
 
@@ -141,16 +135,15 @@ export default function Home() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!phone || !password) {
-      setMessage('電話番号とパスワードを入力してください')
+    if (!email || !password) {
+      setMessage('メールアドレスとパスワードを入力してください')
       return
     }
 
     setMessage('ログイン処理中...')
     try {
-      const internalEmail = formatPhoneToEmail(phone)
       const { error } = await supabase.auth.signInWithPassword({
-        email: internalEmail,
+        email: email.trim(),
         password: password.trim(),
       })
 
@@ -167,12 +160,11 @@ export default function Home() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!fullName.trim() || !phone || !password) {
-      setMessage('お名前、電話番号、パスワードを入力してください')
+    if (!fullName.trim() || !email.trim() || !password) {
+      setMessage('お名前、メールアドレス、パスワードを入力してください')
       return
     }
 
-    // ★ パスワードの文字数判定を追加
     if (password.trim().length < 6) {
       setMessage('パスワードは6桁以上で入力してください')
       return
@@ -180,11 +172,10 @@ export default function Home() {
 
     setMessage('新規登録処理中...')
     try {
-      const internalEmail = formatPhoneToEmail(phone)
-      const cleanedPhone = phone.replace(/\D/g, '')
+      const cleanEmail = email.trim()
 
       const { data, error } = await supabase.auth.signUp({
-        email: internalEmail,
+        email: cleanEmail,
         password: password.trim(),
         options: {
           data: { full_name: fullName.trim() },
@@ -197,8 +188,7 @@ export default function Home() {
         await supabase.from('profiles').upsert({
           id: data.user.id,
           role: 'employee',
-          email: internalEmail,
-          phone_number: cleanedPhone,
+          email: cleanEmail,
           full_name: fullName.trim(),
         })
         setUserRole('employee')
@@ -252,40 +242,38 @@ export default function Home() {
     setCustomDebanInput('')
   }
 
-  // ★ ここ（handleAddStaff 内）に組み込みます ★
- const handleAddStaff = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!targetUserId) {
-    alert('スタッフを選択してください')
-    return
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!targetUserId) {
+      alert('スタッフを選択してください')
+      return
+    }
+
+    const isAlreadyAssigned = shifts.some(
+      (s) => s.work_date === selectedDate && s.user_id === targetUserId
+    )
+
+    if (isAlreadyAssigned) {
+      alert('このスタッフはすでに本日いずれかの現場に配置されています。')
+      return
+    }
+
+    const { error } = await supabase.from('shifts').insert([
+      {
+        site_name: selectedSite,
+        user_id: targetUserId,
+        work_date: selectedDate,
+        start_time: startTime,
+        end_time: endTime,
+      },
+    ])
+
+    if (error) alert(`登録エラー: ${error.message}`)
+    else {
+      setTargetUserId('')
+      loadAllData()
+    }
   }
-
-  // 現場を問わず同日にすでに割り当てられているか確認
-  const isAlreadyAssigned = shifts.some(
-    (s) => s.work_date === selectedDate && s.user_id === targetUserId
-  )
-
-  if (isAlreadyAssigned) {
-    alert('このスタッフはすでに本日いずれかの現場に配置されています。')
-    return
-  }
-
-  const { error } = await supabase.from('shifts').insert([
-    {
-      site_name: selectedSite,
-      user_id: targetUserId,
-      work_date: selectedDate,
-      start_time: startTime,
-      end_time: endTime,
-    },
-  ])
-
-  if (error) alert(`登録エラー: ${error.message}`)
-  else {
-    setTargetUserId('')
-    loadAllData()
-  }
-}
 
   const handleDeleteShift = async (id: string) => {
     if (!confirm('このスタッフをシフトから外しますか？')) return
@@ -305,7 +293,6 @@ export default function Home() {
     }
   }
 
-  // スタッフによる新規休み申請送信
   const handleSubmitLeaveRequest = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) return
@@ -365,7 +352,6 @@ export default function Home() {
     setStaffSubView('profile')
   }
 
-  // 新規スタッフ追加画面の呼び出し
   const handleOpenAddStaffForm = () => {
     setSelectedStaff(null)
     setStaffForm({
@@ -384,7 +370,6 @@ export default function Home() {
     setStaffSubView('add')
   }
 
-  // スタッフ情報の保存（更新または新規作成）
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -496,7 +481,7 @@ export default function Home() {
 
   if (session) {
     // ==========================================
-    // 1. スタッフ用画面 (デザインカンプ完全適用)
+    // 1. スタッフ用画面
     // ==========================================
     if (userRole === 'employee') {
       const myLeaveRequests = leaveRequests.filter((r) => r.user_id === session.user.id)
@@ -508,10 +493,9 @@ export default function Home() {
         <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
           <div className="w-full max-w-[430px] bg-white min-h-screen shadow-md flex flex-col overflow-hidden relative">
             
-            {/* --- シフトタブ表示 --- */}
+            {/* シフトタブ表示 */}
             {adminTab === 'overview' && (
               <>
-                {/* ヘッダー */}
                 <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
                   <div>
                     <h1 className="text-2xl font-bold tracking-tight">
@@ -526,7 +510,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* カレンダー */}
                 <div className="grid grid-cols-7 text-center text-xs font-semibold bg-[#EBE8E1] text-gray-700 py-1.5 border-b border-gray-300">
                   <div>月</div>
                   <div>火</div>
@@ -601,7 +584,6 @@ export default function Home() {
                   </AnimatePresence>
                 </div>
 
-                {/* 確定シフトリスト */}
                 <div className="flex-1 p-4">
                   {dayShifts.length === 0 ? (
                     <div className="text-xs text-gray-400 py-4 text-center">
@@ -631,10 +613,9 @@ export default function Home() {
               </>
             )}
 
-            {/* --- 申請タブ表示 --- */}
+            {/* 申請タブ表示 */}
             {adminTab === 'requests' && (
               <div className="flex-1 bg-white flex flex-col relative">
-                {/* 1. 休み申請 一覧画面 */}
                 {employeeSubView === 'list' && (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -683,7 +664,6 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* フローティング プラスボタン */}
                       <div className="absolute right-8 bottom-24">
                         <button
                           onClick={() => setEmployeeSubView('form')}
@@ -698,7 +678,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 2. 申請フォーム画面 */}
                 {employeeSubView === 'form' && (
                   <div className="flex-1 flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -830,7 +809,7 @@ export default function Home() {
     }
 
     // ==========================================
-    // 2. 管理者用画面 (管理者のみ閲覧可能)
+    // 2. 管理者用画面
     // ==========================================
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-20">
@@ -1053,26 +1032,25 @@ export default function Home() {
                         value={targetUserId}
                         onChange={(e) => setTargetUserId(e.target.value)}
                         className="w-full p-2 border rounded text-gray-800 text-xs bg-white"
-                         >
-                       <option value="">スタッフを選択...</option>
+                      >
+                        <option value="">スタッフを選択...</option>
                         {allUsers.map(u => {
-                          // 現場を問わず、選択中の「日付」にすでにシフトが入っているか判定
                           const isAlreadyAssigned = shifts.some(
-                           s => s.work_date === selectedDate && s.user_id === u.id
+                            s => s.work_date === selectedDate && s.user_id === u.id
                           )
 
-                           return (
-                             <option 
-                             key={u.id} 
-                             value={u.id}
-                             disabled={isAlreadyAssigned} // ★ 他現場を含め同日に配置済みの場合は選択不可
-                             >
-                             {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
-                             {isAlreadyAssigned ? ' (他現場を含め配置済み)' : ''}
-                             </option>
-                              )
-                          })}
-                        </select>
+                          return (
+                            <option 
+                              key={u.id} 
+                              value={u.id}
+                              disabled={isAlreadyAssigned}
+                            >
+                              {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
+                              {isAlreadyAssigned ? ' (他現場を含め配置済み)' : ''}
+                            </option>
+                          )
+                        })}
+                      </select>
 
                       <div className="flex gap-2">
                         <input
@@ -1103,7 +1081,6 @@ export default function Home() {
 
             {adminTab === 'staff' && (
               <div className="flex-1 bg-white flex flex-col relative">
-                {/* 1. スタッフ一覧 */}
                 {staffSubView === 'list' && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -1124,7 +1101,6 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* ★新規スタッフ追加のフローティング プラスボタン */}
                     <div className="absolute right-8 bottom-20 z-10">
                       <button
                         onClick={handleOpenAddStaffForm}
@@ -1138,7 +1114,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 2. スタッフプロフィール閲覧 */}
                 {staffSubView === 'profile' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -1208,7 +1183,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. スタッフ編集・新規追加フォーム */}
                 {(staffSubView === 'edit' || staffSubView === 'add') && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
@@ -1350,7 +1324,6 @@ export default function Home() {
                         </div>
                       </form>
 
-                      {/* 戻る リンク */}
                       <div className="flex justify-end pb-8">
                         <button
                           type="button"
@@ -1408,7 +1381,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* 管理者用フッター（3分割） */}
+          {/* 管理者用フッター */}
           <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-3 text-center text-xs border-t border-white/20 z-20">
             <button
               onClick={() => {
@@ -1450,7 +1423,7 @@ export default function Home() {
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span>申請</span>
               {pendingLeaveCount > 0 && (
@@ -1465,7 +1438,7 @@ export default function Home() {
     )
   }
 
-  // ログイン未完了時
+  // ログイン未完了時（メールアドレス形式）
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
@@ -1477,13 +1450,13 @@ export default function Home() {
         {authMode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">電話番号</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス</label>
               <input
-                type="tel"
+                type="email"
                 required
-                placeholder="例）09012345678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                placeholder="例）example@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
@@ -1525,19 +1498,20 @@ export default function Home() {
               <input
                 type="text"
                 required
+                placeholder="例）山田 太郎"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">電話番号 *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">メールアドレス *</label>
               <input
-                type="tel"
+                type="email"
                 required
-                placeholder="例）09012345678（ハイフンなし）"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                placeholder="例）example@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
