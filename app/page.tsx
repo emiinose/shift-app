@@ -1490,7 +1490,16 @@ export default function Home() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   パスワード
                 </label>
-                 {/*パスワード入力枠の下に配置（右寄せ）*/}
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="パスワードを入力"
+                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
+              />
+            </div>
+            {/*パスワード入力枠の下に配置（右寄せ）*/}
                  <div className="text-right mt-1.5"> 
                 <button
                   type="button"
@@ -1504,15 +1513,6 @@ export default function Home() {
                 </button>
               </div>
               </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="パスワードを入力"
-                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
-              />
-            </div>
             <button
               type="submit"
               className="w-full bg-[#4B8BF5] text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-[#3B72D0] transition"
