@@ -200,6 +200,30 @@ export default function Home() {
     }
   }
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) {
+      setMessage('登録済みのメールアドレスを入力してください')
+      return
+    }
+
+    setMessage('再設定メールを送信中...')
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      })
+
+      if (error) {
+        setMessage(`送信エラー: ${error.message}`)
+      } else {
+        setMessage('パスワード再設定用のメールを送信しました。メールに記載されたリンクから手続きを行ってください。')
+      }
+    } catch (err: any) {
+      setMessage(`エラー: ${err.message || JSON.stringify(err)}`)
+    }
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     window.location.href = '/'
@@ -1438,13 +1462,14 @@ export default function Home() {
     )
   }
 
-  // ログイン未完了時（メールアドレス形式）
+  // ログイン未完了時
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-5">
         <h1 className="text-xl font-bold text-center text-gray-800">
           {authMode === 'login' && 'ログイン'}
           {authMode === 'signup' && '新規アカウント登録'}
+          {authMode === 'reset' && 'パスワードの再設定'}
         </h1>
 
         {authMode === 'login' && (
@@ -1461,9 +1486,21 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold mb-1 text-gray-700">
-                パスワード
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-gray-700">
+                  パスワード
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessage('')
+                    setAuthMode('reset')
+                  }}
+                  className="text-[11px] text-[#4B8BF5] hover:underline font-medium"
+                >
+                  パスワードをお忘れの方
+                </button>
+              </div>
               <input
                 type="password"
                 required
@@ -1482,7 +1519,10 @@ export default function Home() {
             <div className="border-t pt-4 text-center">
               <button
                 type="button"
-                onClick={() => setAuthMode('signup')}
+                onClick={() => {
+                  setMessage('')
+                  setAuthMode('signup')
+                }}
                 className="w-full bg-green-600 text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-green-700 transition"
               >
                 新規登録はこちら
@@ -1537,10 +1577,50 @@ export default function Home() {
             <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={() => setAuthMode('login')}
+                onClick={() => {
+                  setMessage('')
+                  setAuthMode('login')
+                }}
                 className="text-xs text-[#4B8BF5] font-bold underline"
               >
                 ログイン画面に戻る
+              </button>
+            </div>
+          </form>
+        )}
+
+        {authMode === 'reset' && (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <p className="text-xs text-gray-600 leading-relaxed">
+              ご登録のメールアドレスを入力してください。パスワード再設定用の案内メールをお送りします。
+            </p>
+            <div>
+              <label className="block text-xs font-bold text-[#4B8BF5] mb-1">メールアドレス</label>
+              <input
+                type="email"
+                required
+                placeholder="例）example@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-[#4B8BF5] text-white font-bold py-3 rounded-lg text-sm shadow hover:bg-[#3B72D0] transition"
+            >
+              再設定用メールを送信
+            </button>
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMessage('')
+                  setAuthMode('login')
+                }}
+                className="text-xs text-gray-500 font-bold underline"
+              >
+                キャンセルしてログイン画面に戻る
               </button>
             </div>
           </form>
