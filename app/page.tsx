@@ -1120,10 +1120,26 @@ export default function Home() {
             )}
 
             {adminTab === 'staff' && (
-              <div className="flex-1 bg-white flex flex-col relative">
-                {staffSubView === 'list' && (
-                  <div className="flex-1 bg-white flex flex-col">
-                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
+             <div className="flex-1 bg-white flex flex-col relative">
+            {/* 他のタブと共通のヘッダー */}
+             <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end">
+             <div>
+             <h1 className="text-2xl font-bold tracking-tight">{year}年{month + 1}月</h1>
+             </div>
+             <div className="flex items-center gap-2">
+             <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">
+              管理者
+             </span>
+             <button onClick={handleSignOut} className="text-xs text-white/80 hover:text-white underline">
+     ログアウト
+       </button>
+      </div>
+    </div>
+
+    {staffSubView === 'list' && (
+      <div className="flex-1 bg-white flex flex-col">
+        {/* ← ここにあった <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div> を削除 */}
+        <div className="px-6 pt-6 flex-1 pb-24">
                     <div className="px-6 pt-6 flex-1 pb-24">
                       {allUsers.map((u) => (
                         <div
@@ -1216,7 +1232,8 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <div className="flex justify-end mt-4 mb-16">
+                      <div className="flex justify-end">
+                        <div className="mt-4 mb-16">
                         <button
                           onClick={() => setStaffSubView('list')}
                           className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
