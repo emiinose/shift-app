@@ -1170,7 +1170,6 @@ export default function Home() {
 
                 {staffSubView === 'profile' && selectedStaff && (
                   <div className="flex-1 bg-white flex flex-col">
-                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
                     <div className="px-6 pt-6 flex-1 flex flex-col justify-between">
                       <div>
                         <h2 className="text-center text-[#4B8BF5] font-medium text-base mb-6">
