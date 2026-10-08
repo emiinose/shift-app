@@ -393,7 +393,21 @@ export default function Home() {
     setStaffSaveMsg('')
     setStaffSubView('add')
   }
+   const handleDeleteStaff = async () => {
+  if (!selectedStaff) return
+  if (!confirm(`${selectedStaff.full_name || 'このスタッフ'}を削除してもよろしいですか？`)) return
 
+  const { error } = await supabase.from('profiles').delete().eq('id', selectedStaff.id)
+
+  if (error) {
+    alert(`削除エラー: ${error.message}`)
+  } else {
+    alert('スタッフを削除しました')
+    setSelectedStaff(null)
+    setStaffSubView('list')
+    loadAllData()
+  }
+}
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -433,6 +447,21 @@ export default function Home() {
       }, 600)
     }
   }
+  const handleDeleteStaff = async () => {
+  if (!selectedStaff) return
+  if (!confirm(`${selectedStaff.full_name || 'このスタッフ'}を削除してもよろしいですか？`)) return
+
+  const { error } = await supabase.from('profiles').delete().eq('id', selectedStaff.id)
+
+  if (error) {
+    alert(`削除エラー: ${error.message}`)
+  } else {
+    alert('スタッフを削除しました')
+    setSelectedStaff(null)
+    setStaffSubView('list')
+    loadAllData()
+  }
+}
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-'
@@ -1189,6 +1218,14 @@ export default function Home() {
                           >
                             編集
                           </button>
+                           {/* 編集ボタンの下に赤文字・赤下線で配置 */}
+                         <button
+                         type="button"
+                         onClick={handleDeleteStaff}
+                         className="text-red-500 underline text-xs font-medium hover:text-red-600 transition-colors"
+                         >
+                         スタッフ削除
+                         </button>
                         </div>
                       </div>
 
