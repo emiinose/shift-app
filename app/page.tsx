@@ -1211,7 +1211,7 @@ export default function Home() {
                             onClick={handleDeleteStaff}
                             className="text-red-500 underline text-xs font-medium hover:text-red-600 transition-colors"
                           >
-                            スタッフ削除
+                            削除
                           </button>
                         </div>
                       </div>
