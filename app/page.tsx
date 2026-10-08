@@ -393,21 +393,7 @@ export default function Home() {
     setStaffSaveMsg('')
     setStaffSubView('add')
   }
-   const handleDeleteStaff = async () => {
-  if (!selectedStaff) return
-  if (!confirm(`${selectedStaff.full_name || 'このスタッフ'}を削除してもよろしいですか？`)) return
 
-  const { error } = await supabase.from('profiles').delete().eq('id', selectedStaff.id)
-
-  if (error) {
-    alert(`削除エラー: ${error.message}`)
-  } else {
-    alert('スタッフを削除しました')
-    setSelectedStaff(null)
-    setStaffSubView('list')
-    loadAllData()
-  }
-}
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
 
