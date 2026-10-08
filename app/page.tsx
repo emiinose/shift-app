@@ -394,6 +394,22 @@ export default function Home() {
     setStaffSubView('add')
   }
 
+  const handleDeleteStaff = async () => {
+    if (!selectedStaff) return
+    if (!confirm(`${selectedStaff.full_name || 'このスタッフ'}を削除してもよろしいですか？`)) return
+
+    const { error } = await supabase.from('profiles').delete().eq('id', selectedStaff.id)
+
+    if (error) {
+      alert(`削除エラー: ${error.message}`)
+    } else {
+      alert('スタッフを削除しました')
+      setSelectedStaff(null)
+      setStaffSubView('list')
+      loadAllData()
+    }
+  }
+
   const handleSaveStaffInfo = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -433,21 +449,6 @@ export default function Home() {
       }, 600)
     }
   }
-  const handleDeleteStaff = async () => {
-  if (!selectedStaff) return
-  if (!confirm(`${selectedStaff.full_name || 'このスタッフ'}を削除してもよろしいですか？`)) return
-
-  const { error } = await supabase.from('profiles').delete().eq('id', selectedStaff.id)
-
-  if (error) {
-    alert(`削除エラー: ${error.message}`)
-  } else {
-    alert('スタッフを削除しました')
-    setSelectedStaff(null)
-    setStaffSubView('list')
-    loadAllData()
-  }
-}
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-'
@@ -1197,21 +1198,21 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="flex justify-center mt-8">
+                        {/* 編集ボタンと削除ボタン（縦並び・赤文字・赤下線） */}
+                        <div className="flex flex-col items-center mt-8 gap-3">
                           <button
                             onClick={() => setStaffSubView('edit')}
                             className="bg-[#4B8BF5] text-white text-xs px-8 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
                           >
                             編集
                           </button>
-                           {/* 編集ボタンの下に赤文字・赤下線で配置 */}
-                         <button
-                         type="button"
-                         onClick={handleDeleteStaff}
-                         className="text-red-500 underline text-xs font-medium hover:text-red-600 transition-colors"
-                         >
-                         スタッフ削除
-                         </button>
+                          <button
+                            type="button"
+                            onClick={handleDeleteStaff}
+                            className="text-red-500 underline text-xs font-medium hover:text-red-600 transition-colors"
+                          >
+                            スタッフ削除
+                          </button>
                         </div>
                       </div>
 
@@ -1508,13 +1509,10 @@ export default function Home() {
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
             </div>
-             <div className="mb-4">
-              {/* 1. パスワード（左上） */}
+            <div className="mb-4">
               <label className="block text-xs font-bold text-gray-700 mb-1">
                 パスワード
               </label>
-
-              {/* 2. パスワード入力枠 */}
               <input
                 type="password"
                 required
@@ -1523,8 +1521,6 @@ export default function Home() {
                 placeholder="パスワードを入力"
                 className="w-full p-3 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4B8BF5]"
               />
-
-              {/* 3. 入力枠の右下に配置 */}
               <div className="text-right mt-1.5">
                 <button
                   type="button"
