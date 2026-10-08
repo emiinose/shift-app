@@ -1229,8 +1229,7 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <div className="flex justify-end">
-                        <div className="mt-20 mb-16">
+                         <div className="flex justify-end w-full mt-4 mb-16">
                           <button
                             onClick={() => setStaffSubView('list')}
                             className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
