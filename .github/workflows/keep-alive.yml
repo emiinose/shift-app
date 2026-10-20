@@ -1,0 +1,17 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # 毎週月曜日の午前9時（JST）に実行（UTCでは日曜日の24:00）
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # 手動実行用ボタンも有効化
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send request to Supabase
+        run: |
+          curl -s -f -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=count" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
