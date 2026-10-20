@@ -1475,24 +1475,25 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => {
-                setAdminTab('requests')
-                setStaffSubView('list')
-              }}
-              className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
-                adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span>申請</span>
-              {pendingLeaveCount > 0 && (
-                <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-                  {pendingLeaveCount}
-                </span>
-              )}
-            </button>
+  onClick={() => {
+    setAdminTab('requests')
+    setStaffSubView('list')
+  }}
+  className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
+    adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+  }`}
+>
+  {/* 正しいメールアイコンのSVG */}
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+  <span>申請</span>
+  {pendingLeaveCount > 0 && (
+    <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+      {pendingLeaveCount}
+    </span>
+  )}
+</button>
           </div>
         </div>
       </div>
