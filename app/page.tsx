@@ -59,6 +59,7 @@ export default function Home() {
 
   // 休み申請用ステート
   const [leaveRequests, setLeaveRequests] = useState<any[]>([])
+  const [selectedLeaveReq, setSelectedLeaveReq] = useState<any>(null) // モーダル用選択中の申請データ
   
   // スタッフ新規休み申請フォーム用ステート
   const [leaveForm, setLeaveForm] = useState({
@@ -1229,19 +1230,19 @@ export default function Home() {
                         </div>
                       </div>
 
-                         <div className="flex justify-end w-full mt-4 mb-30">
-                          <button
-                            onClick={() => setStaffSubView('list')}
-                            className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
-                          >
-                            <span>戻る</span>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        </div>
+                      <div className="flex justify-end w-full mt-4 mb-30">
+                        <button
+                          onClick={() => setStaffSubView('list')}
+                          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
+                        >
+                          <span>戻る</span>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
+                  </div>
                 )}
 
                 {(staffSubView === 'edit' || staffSubView === 'add') && (
@@ -1403,8 +1404,9 @@ export default function Home() {
               </div>
             )}
 
+            {/* 管理者用：申請タブ */}
             {adminTab === 'requests' && (
-              <div className="space-y-4 p-4">
+              <div className="space-y-4 p-4 relative flex-1">
                 {leaveRequests.length === 0 ? (
                   <p className="text-xs text-gray-400 py-8 text-center">休み申請はありません</p>
                 ) : (
@@ -1416,28 +1418,104 @@ export default function Home() {
                       return (
                         <div 
                           key={req.id} 
-                          className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800"
+                          onClick={() => setSelectedLeaveReq(req)}
+                          className="flex items-center justify-between pb-2 border-b border-[#A0C4FF] text-xs text-gray-800 cursor-pointer hover:bg-gray-50 transition-colors py-2"
                         >
                           <div className="w-24 font-normal">{req.leave_date}</div>
-                          <div className="w-20 font-normal truncate">{applicant?.full_name || req.user_email || 'Name'}</div>
+                          <div className="w-20 font-normal truncate">
+                            {applicant?.name_kana || applicant?.full_name || req.user_email || 'Name'}
+                          </div>
                           <div className="flex-1 text-center font-normal">現場 : {req.site_name || '佐川'}</div>
-                          <div className="w-24 text-right">
-                            <button
-                              onClick={() => handleToggleLeaveStatus(req.id, req.status)}
-                              className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                                isApproved
-                                  ? 'border border-[#4B8BF5] text-[#4B8BF5] bg-white hover:bg-blue-50'
-                                  : 'bg-[#4B8BF5] text-white hover:bg-[#3B72D0]'
-                              }`}
-                            >
-                              {isApproved ? '承認' : '許可する'}
-                            </button>
+                          
+                          {/* ステート表示 */}
+                          <div className="w-20 text-right">
+                            {isApproved ? (
+                              <span className="inline-block text-center w-16 py-1 border border-[#4B8BF5] text-[#4B8BF5] rounded-md text-[11px] font-normal">
+                                承認
+                              </span>
+                            ) : (
+                              <span className="inline-block text-center w-16 py-1 bg-[#4B8BF5] text-white rounded-md text-[11px] font-normal shadow-sm">
+                                許可待ち
+                              </span>
+                            )}
                           </div>
                         </div>
                       )
                     })}
                   </div>
                 )}
+
+                {/* 詳細確認・操作用モーダル */}
+                {selectedLeaveReq && (() => {
+                  const applicant = allUsers.find(u => u.id === selectedLeaveReq.user_id)
+                  const isApproved = selectedLeaveReq.status === 'approved'
+
+                  return (
+                    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                      <div className="bg-white w-full max-w-xs rounded-xl p-5 shadow-lg space-y-4 text-xs">
+                        <h3 className="text-center text-[#4B8BF5] font-bold text-sm border-b pb-2">
+                          申請詳細確認
+                        </h3>
+
+                        <div className="space-y-3 text-gray-800">
+                          <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                            <span className="text-gray-500 w-1/3">お名前(フリガナ)</span>
+                            <span className="font-medium w-2/3 text-right">
+                              {applicant?.name_kana || applicant?.full_name || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                            <span className="text-gray-500 w-1/3">休み希望日</span>
+                            <span className="font-medium w-2/3 text-right">
+                              {selectedLeaveReq.leave_date || '-'}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                            <span className="text-gray-500 w-1/3">現場</span>
+                            <span className="font-medium w-2/3 text-right">
+                              {selectedLeaveReq.site_name || '佐川'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col gap-1 border-b border-gray-100 pb-1.5">
+                            <span className="text-gray-500">理由</span>
+                            <p className="bg-gray-50 p-2 rounded text-gray-700 min-h-[50px] whitespace-pre-wrap">
+                              {selectedLeaveReq.reason || '（理由の記載なし）'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* モーダル内の操作ボタン */}
+                        <div className="flex items-center justify-between pt-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleToggleLeaveStatus(selectedLeaveReq.id, selectedLeaveReq.status)
+                              setSelectedLeaveReq(null)
+                            }}
+                            className={`flex-1 py-2 rounded-lg font-bold text-white transition ${
+                              isApproved
+                                ? 'bg-gray-500 hover:bg-gray-600'
+                                : 'bg-[#4B8BF5] hover:bg-[#3B72D0]'
+                            }`}
+                          >
+                            {isApproved ? '許可を取り消す' : '許可する'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedLeaveReq(null)}
+                            className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50"
+                          >
+                            閉じる
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>
@@ -1475,25 +1553,25 @@ export default function Home() {
             </button>
 
             <button
-  onClick={() => {
-    setAdminTab('requests')
-    setStaffSubView('list')
-  }}
-  className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
-    adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
-  }`}
->
-  {/* 正しいメールアイコンのSVG */}
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-  </svg>
-  <span>申請</span>
-  {pendingLeaveCount > 0 && (
-    <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-      {pendingLeaveCount}
-    </span>
-  )}
-</button>
+              onClick={() => {
+                setAdminTab('requests')
+                setStaffSubView('list')
+              }}
+              className={`py-3 flex flex-col items-center justify-center gap-1 relative ${
+                adminTab === 'requests' ? 'bg-[#3B72D0] font-bold' : 'hover:bg-[#3B72D0]/50'
+              }`}
+            >
+              {/* 正しいメールアイコンのSVG */}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>申請</span>
+              {pendingLeaveCount > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+                  {pendingLeaveCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
