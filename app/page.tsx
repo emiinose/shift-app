@@ -1138,7 +1138,7 @@ export default function Home() {
                               value={u.id}
                               disabled={isAlreadyAssigned}
                             >
-                              {u.full_name ? `${u.full_name} (${u.email || ''})` : u.email}
+                              {u.full_name ? `${u.full_name} (${u.name_kana || ''})` : u.name_kana}
                               {isAlreadyAssigned ? ' (他現場を含め配置済み)' : ''}
                             </option>
                           )
