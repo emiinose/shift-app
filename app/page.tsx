@@ -1382,7 +1382,7 @@ export default function Home() {
     </div>
 
     {/* 入社日の下に「登録」ボタンと「戻る」ボタンを配置 */}
-    <div className="flex flex-col items-center pt-6 space-y-3">
+    <div className="flex flex-col items-center pt-6 space-y-5">
       <button
         type="submit"
         className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
