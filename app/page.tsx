@@ -1150,7 +1150,7 @@ export default function Home() {
                           type="time"
                           value={startTime}
                           onChange={(e) => setStartTime(e.target.value)}
-                          className="flex-1 p-2 border rounded text-gray-800 text-xs"
+                          className="w-full max-w-[140px] p-2 border rounded text-gray-800 text-xs"
                         />
                       </div>
 
