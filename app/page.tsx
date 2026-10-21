@@ -1104,7 +1104,7 @@ export default function Home() {
                               <div key={s.id} className="flex justify-between items-center p-2.5 border rounded text-xs bg-gray-50">
                                 <span className="font-bold text-gray-800">{displayName}</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-gray-500">{s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}</span>
+                                  <span className="text-gray-500">{s.start_time.slice(0, 5)}</span>
                                   <button
                                     onClick={() => handleDeleteShift(s.id)}
                                     className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold"
