@@ -1400,7 +1400,7 @@ export default function Home() {
                           <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
                             <label className="text-gray-700 font-normal w-1/3">入社日</label>
                             <input
-                              type="text"
+                              type="date"
                               placeholder="例）1234年05月06日"
                               value={staffForm.registration_date}
                               onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
