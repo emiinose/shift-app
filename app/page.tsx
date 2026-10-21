@@ -1152,12 +1152,6 @@ export default function Home() {
                           onChange={(e) => setStartTime(e.target.value)}
                           className="flex-1 p-2 border rounded text-gray-800 text-xs"
                         />
-                        <input
-                          type="time"
-                          value={endTime}
-                          onChange={(e) => setEndTime(e.target.value)}
-                          className="flex-1 p-2 border rounded text-gray-800 text-xs"
-                        />
                       </div>
 
                       <button
