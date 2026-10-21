@@ -1382,17 +1382,17 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-center mt-8">
-                          <button
-                            type="submit"
-                            className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
-                          >
-                            登録
-                          </button>
-                          {staffSaveMsg && (
-                            <p className="text-xs text-[#4B8BF5] font-bold mt-2">{staffSaveMsg}</p>
-                          )}
-                        </div>
+                        <div className="flex flex-col items-center pt-6">
+      <button
+        type="submit"
+        className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
+      >
+        登録
+      </button>
+      {staffSaveMsg && (
+        <p className="text-xs text-[#4B8BF5] font-bold mt-2">{staffSaveMsg}</p>
+      )}
+    </div>
                       </form>
 
                       <div className="flex justify-end pb-8">
