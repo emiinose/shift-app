@@ -804,7 +804,7 @@ export default function Home() {
           </div>
         </form>
 
-       <div className="flex justify-end pt-4 pb-8">
+       <div className="flex justify-end pt-4 pb-2">
       <button
         type="button"
         onClick={() => setEmployeeSubView('list')}
