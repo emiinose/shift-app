@@ -461,6 +461,18 @@ export default function Home() {
     return `${y} 年 ${m}月 ${d}日`
   }
 
+  // 入社日からの経過日数を計算する関数
+  const getDaysSinceRegistration = (dateStr?: string) => {
+    if (!dateStr) return null
+    const regDate = new Date(dateStr)
+    if (isNaN(regDate.getTime())) return null
+
+    const today = new Date()
+    const diffTime = today.setHours(0, 0, 0, 0) - regDate.setHours(0, 0, 0, 0)
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays >= 0 ? diffDays : 0
+  }
+
   const changeMonth = (offset: number) => {
     setSlideDirection(offset)
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
@@ -656,170 +668,170 @@ export default function Home() {
 
             {/* 申請タブ表示 */}
             {adminTab === 'requests' && (
-             <div className="flex-1 bg-white flex flex-col relative">
-             {/* 共通ヘッダー（分岐の外側に1つだけ配置） */}
-               <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end flex-shrink-0">
-                <div>
-                 <h1 className="text-2xl font-bold tracking-tight">
-                  {year}年{month + 1}月
-                 </h1>
-                 </div>
-                  <button
-                     onClick={handleSignOut}
-                      className="text-xs text-white/80 hover:text-white underline"
-                       >
-                      ログアウト
-                   </button>
+              <div className="flex-1 bg-white flex flex-col relative">
+                {/* 共通ヘッダー（分岐の外側に1つだけ配置） */}
+                <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end flex-shrink-0">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">
+                      {year}年{month + 1}月
+                    </h1>
                   </div>
-
-                     {/* サブビュー切替 */}
-                     {employeeSubView === 'list' && (
-                       <div className="px-6 pt-6 flex-1 flex flex-col">
-                        <h2 className="text-center text-[#4B8BF5] font-normal text-sm mb-6">
-                         休み申請
-                         </h2>
-
-                         {myLeaveRequests.length === 0 ? (
-                            <p className="text-xs text-gray-400 py-12 text-center">
-                            申請履歴はありません
-                            </p>
-                            ) : (
-                            <div className="space-y-0 text-xs">
-                              {myLeaveRequests.map((req) => {
-                              const isApproved = req.status === 'approved'
-                              const dateFormatted = req.leave_date
-                              ? req.leave_date.replace(/-/g, '/')
-                              : ''
-
-                               return (
-                                <div
-                                 key={req.id}
-                                 className="flex items-center justify-between py-3.5 border-b border-[#D6E6FE]"
-                                 >
-                                  <span className="text-[#4B8BF5] w-24 font-normal">
-                                   {dateFormatted}
-                                  </span>
-                                 <span className="text-gray-800 flex-1 px-2 font-normal">
-                                   現場：{req.site_name || '佐川'}
-                                 </span>
-                                  <div className="w-20 flex justify-end">
-                                   {isApproved ? (
-                                     <span className="inline-block text-center w-16 py-1 border border-[#4B8BF5] text-[#4B8BF5] rounded-md text-[11px] font-normal">
-                                      許可
-                                    </span>
-                                    ) : (
-                                    <span className="inline-block text-center w-16 py-1 bg-[#4B8BF5] text-white rounded-md text-[11px] font-normal shadow-sm">
-                                      許可待ち
-                                    </span>
-                                   )}
-                                   </div>
-                                  </div>
-                                    )
-                                   })}
-                                </div>
-                               )}
-
-                              <div className="absolute right-8 bottom-24">
-                                <button
-                                  onClick={() => setEmployeeSubView('form')}
-                                  className="w-14 h-14 bg-[#3B72D0] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#2B5290] transition-colors"
-                                  >
-                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                  </svg>
-                               </button>
-                             </div>
-                           </div>
-                         )}
-
-    {employeeSubView === 'form' && (
-      <div className="px-6 pt-8 flex-1 flex flex-col justify-between">
-        <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
-          <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
-            <div className="flex items-center justify-between">
-              <label className="text-gray-700 w-1/3 font-normal">
-                お名前(フリガナ)
-              </label>
-              <input
-                type="text"
-                disabled
-                value={leaveForm.nameKana || userProfile?.name_kana || ''}
-                className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed font-normal"
-              />
-            </div>
-             
-            <div className="flex items-center justify-between">
-              <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
-              <input
-                type="date"
-                required
-                value={leaveForm.leaveDate}
-                onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
-                className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="text-gray-700 w-1/3 font-normal">現場</label>
-              <div className="w-2/3 relative">
-                <select
-                  value={leaveForm.siteName}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, siteName: e.target.value })}
-                  className="w-full bg-[#E0E0E0] text-gray-700 px-3 py-1.5 rounded appearance-none focus:outline-none pr-8 font-normal"
-                >
-                  {presetSites.map((site) => (
-                    <option key={site} value={site}>
-                      {site}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-xs text-white/80 hover:text-white underline"
+                  >
+                    ログアウト
+                  </button>
                 </div>
+
+                {/* サブビュー切替 */}
+                {employeeSubView === 'list' && (
+                  <div className="px-6 pt-6 flex-1 flex flex-col">
+                    <h2 className="text-center text-[#4B8BF5] font-normal text-sm mb-6">
+                      休み申請
+                    </h2>
+
+                    {myLeaveRequests.length === 0 ? (
+                      <p className="text-xs text-gray-400 py-12 text-center">
+                        申請履歴はありません
+                      </p>
+                    ) : (
+                      <div className="space-y-0 text-xs">
+                        {myLeaveRequests.map((req) => {
+                          const isApproved = req.status === 'approved'
+                          const dateFormatted = req.leave_date
+                            ? req.leave_date.replace(/-/g, '/')
+                            : ''
+
+                          return (
+                            <div
+                              key={req.id}
+                              className="flex items-center justify-between py-3.5 border-b border-[#D6E6FE]"
+                            >
+                              <span className="text-[#4B8BF5] w-24 font-normal">
+                                {dateFormatted}
+                              </span>
+                              <span className="text-gray-800 flex-1 px-2 font-normal">
+                                現場：{req.site_name || '佐川'}
+                              </span>
+                              <div className="w-20 flex justify-end">
+                                {isApproved ? (
+                                  <span className="inline-block text-center w-16 py-1 border border-[#4B8BF5] text-[#4B8BF5] rounded-md text-[11px] font-normal">
+                                    許可
+                                  </span>
+                                ) : (
+                                  <span className="inline-block text-center w-16 py-1 bg-[#4B8BF5] text-white rounded-md text-[11px] font-normal shadow-sm">
+                                    許可待ち
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <div className="absolute right-8 bottom-24">
+                      <button
+                        onClick={() => setEmployeeSubView('form')}
+                        className="w-14 h-14 bg-[#3B72D0] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#2B5290] transition-colors"
+                      >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {employeeSubView === 'form' && (
+                  <div className="px-6 pt-8 flex-1 flex flex-col justify-between">
+                    <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
+                      <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
+                        <div className="flex items-center justify-between">
+                          <label className="text-gray-700 w-1/3 font-normal">
+                            お名前(フリガナ)
+                          </label>
+                          <input
+                            type="text"
+                            disabled
+                            value={leaveForm.nameKana || userProfile?.name_kana || ''}
+                            className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed font-normal"
+                          />
+                        </div>
+                         
+                        <div className="flex items-center justify-between">
+                          <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
+                          <input
+                            type="date"
+                            required
+                            value={leaveForm.leaveDate}
+                            onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
+                            className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <label className="text-gray-700 w-1/3 font-normal">現場</label>
+                          <div className="w-2/3 relative">
+                            <select
+                              value={leaveForm.siteName}
+                              onChange={(e) => setLeaveForm({ ...leaveForm, siteName: e.target.value })}
+                              className="w-full bg-[#E0E0E0] text-gray-700 px-3 py-1.5 rounded appearance-none focus:outline-none pr-8 font-normal"
+                            >
+                              {presetSites.map((site) => (
+                                <option key={site} value={site}>
+                                  {site}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start justify-between">
+                          <label className="text-gray-700 w-1/3 font-normal pt-1">理由</label>
+                          <textarea
+                            rows={4}
+                            value={leaveForm.reason}
+                            onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                            placeholder="例）体調不良"
+                            className="w-2/3 bg-[#E0E0E0] text-gray-700 p-2.5 rounded focus:outline-none placeholder-gray-500 resize-none font-normal"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center pt-2">
+                        <button
+                          type="submit"
+                          disabled={leaveSubmitting}
+                          className="bg-[#3B72D0] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#2B5290] transition-colors shadow-sm disabled:opacity-50"
+                        >
+                          {leaveSubmitting ? '送信中...' : '送信'}
+                        </button>
+                      </div>
+                    </form>
+
+                    <div className="flex justify-end pt-4 pb-60">
+                      <button
+                        type="button"
+                        onClick={() => setEmployeeSubView('list')}
+                        className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
+                      >
+                        <span>戻る</span>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-
-            <div className="flex items-start justify-between">
-              <label className="text-gray-700 w-1/3 font-normal pt-1">理由</label>
-              <textarea
-                rows={4}
-                value={leaveForm.reason}
-                onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                placeholder="例）体調不良"
-                className="w-2/3 bg-[#E0E0E0] text-gray-700 p-2.5 rounded focus:outline-none placeholder-gray-500 resize-none font-normal"
-              ></textarea>
-            </div>
-          </div>
-
-          <div className="flex justify-center pt-2">
-            <button
-              type="submit"
-              disabled={leaveSubmitting}
-              className="bg-[#3B72D0] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#2B5290] transition-colors shadow-sm disabled:opacity-50"
-            >
-              {leaveSubmitting ? '送信中...' : '送信'}
-            </button>
-          </div>
-        </form>
-
-       <div className="flex justify-end pt-4 pb-60">
-      <button
-        type="button"
-        onClick={() => setEmployeeSubView('list')}
-        className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
-      >
-        <span>戻る</span>
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
-      </div>
-    )}
-  </div>
-)}
+            )}
 
             {/* スタッフ用フッター */}
             <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-2 text-center text-xs border-t border-white/20 z-10">
@@ -1150,20 +1162,35 @@ export default function Home() {
                 {staffSubView === 'list' && (
                   <div className="flex-1 bg-white flex flex-col">
                     <div className="px-6 pt-6 flex-1 pb-24">
-                      {allUsers.map((u) => (
-                        <div
-                          key={u.id}
-                          onClick={() => handleSelectStaff(u)}
-                          className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <span className="text-gray-800 text-sm font-normal">
-                            {u.full_name || 'Name'}
-                          </span>
-                          <svg className="w-4 h-4 text-[#4B8BF5]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      ))}
+                      {allUsers.map((u) => {
+                        const days = getDaysSinceRegistration(u.registration_date)
+
+                        return (
+                          <div
+                            key={u.id}
+                            onClick={() => handleSelectStaff(u)}
+                            className="flex items-center justify-between py-3 border-b border-[#BCE0FD] cursor-pointer hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* フリガナ優先表示 */}
+                              <span className="text-gray-800 text-sm font-normal">
+                                {u.name_kana || u.full_name || u.email || 'Name'}
+                              </span>
+
+                              {/* 入社経過日数の表示 */}
+                              {days !== null && (
+                                <span className="text-[10px] text-[#4B8BF5] bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                                  入社{days}日
+                                </span>
+                              )}
+                            </div>
+
+                            <svg className="w-4 h-4 text-[#4B8BF5]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        )
+                      })}
                     </div>
 
                     <div className="absolute right-8 bottom-20 z-10">
@@ -1263,152 +1290,152 @@ export default function Home() {
                       </h2>
 
                       <form onSubmit={handleSaveStaffInfo} className="space-y-0 text-xs flex-1 flex flex-col justify-between pb-8">
-  <div className="space-y-0">
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">お名前</label>
-      <input
-        type="text"
-        placeholder="例）山田 太郎"
-        value={staffForm.full_name}
-        onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
-        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-      />
-    </div>
+                        <div className="space-y-0">
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">お名前</label>
+                            <input
+                              type="text"
+                              placeholder="例）山田 太郎"
+                              value={staffForm.full_name}
+                              onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
-      <input
-        type="text"
-        placeholder="例）ヤマダ タロウ"
-        value={staffForm.name_kana}
-        onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
-        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-      />
-    </div>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
+                            <input
+                              type="text"
+                              placeholder="例）ヤマダ タロウ"
+                              value={staffForm.name_kana}
+                              onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">市区町村</label>
-      <input
-        type="text"
-        placeholder="例）中川区"
-        value={staffForm.address_city}
-        onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
-        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-      />
-    </div>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">市区町村</label>
+                            <input
+                              type="text"
+                              placeholder="例）中川区"
+                              value={staffForm.address_city}
+                              onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">在留資格</label>
-      <input
-        type="text"
-        placeholder="例）家族滞在"
-        value={staffForm.visa_status}
-        onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
-        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-      />
-    </div>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">在留資格</label>
+                            <input
+                              type="text"
+                              placeholder="例）家族滞在"
+                              value={staffForm.visa_status}
+                              onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">誕生日</label>
-      <div className="w-2/3 flex items-center gap-1">
-        <select
-          value={staffForm.birth_year}
-          onChange={(e) => setStaffForm({ ...staffForm, birth_year: e.target.value })}
-          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-        >
-          {Array.from({ length: 80 }, (_, i) => 1950 + i).map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <span className="text-gray-700">年</span>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">誕生日</label>
+                            <div className="w-2/3 flex items-center gap-1">
+                              <select
+                                value={staffForm.birth_year}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_year: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 80 }, (_, i) => 1950 + i).map(y => (
+                                  <option key={y} value={y}>{y}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">年</span>
 
-        <select
-          value={staffForm.birth_month}
-          onChange={(e) => setStaffForm({ ...staffForm, birth_month: e.target.value })}
-          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-        >
-          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-        <span className="text-gray-700">月</span>
+                              <select
+                                value={staffForm.birth_month}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_month: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
+                                  <option key={m} value={m}>{m}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">月</span>
 
-        <select
-          value={staffForm.birth_day}
-          onChange={(e) => setStaffForm({ ...staffForm, birth_day: e.target.value })}
-          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-        >
-          {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        <span className="text-gray-700">日</span>
-      </div>
-    </div>
+                              <select
+                                value={staffForm.birth_day}
+                                onChange={(e) => setStaffForm({ ...staffForm, birth_day: e.target.value })}
+                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+                              >
+                                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                                  <option key={d} value={d}>{d}</option>
+                                ))}
+                              </select>
+                              <span className="text-gray-700">日</span>
+                            </div>
+                          </div>
 
-    <div className="py-2.5 border-b border-[#D6E6FE]">
-      <div className="flex items-center justify-between">
-        <label className="text-gray-700 font-normal w-1/3">電話番号</label>
-        <input
-          type="text"
-          placeholder="例）000 0000 0000"
-          value={staffForm.phone_number}
-          onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
-          className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-        />
-      </div>
-      <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
-    </div>
+                          <div className="py-2.5 border-b border-[#D6E6FE]">
+                            <div className="flex items-center justify-between">
+                              <label className="text-gray-700 font-normal w-1/3">電話番号</label>
+                              <input
+                                type="text"
+                                placeholder="例）000 0000 0000"
+                                value={staffForm.phone_number}
+                                onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
+                                className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                              />
+                            </div>
+                            <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
-      <input
-        type="email"
-        value={staffForm.email}
-        onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-        className="w-2/3 bg-white border border-[#4B8BF5] px-3 py-1.5 rounded text-gray-800 focus:outline-none"
-      />
-    </div>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
+                            <input
+                              type="email"
+                              value={staffForm.email}
+                              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+                              className="w-2/3 bg-white border border-[#4B8BF5] px-3 py-1.5 rounded text-gray-800 focus:outline-none"
+                            />
+                          </div>
 
-    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-      <label className="text-gray-700 font-normal w-1/3">入社日</label>
-      <input
-        type="text"
-        placeholder="例）1234年05月06日"
-        value={staffForm.registration_date}
-        onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
-        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-      />
-    </div>
+                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+                            <label className="text-gray-700 font-normal w-1/3">入社日</label>
+                            <input
+                              type="text"
+                              placeholder="例）1234年05月06日"
+                              value={staffForm.registration_date}
+                              onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
+                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+                            />
+                          </div>
 
-    {/* 入社日の下に「登録」ボタンと「戻る」ボタンを配置 */}
-    <div className="flex flex-col items-center pt-6 space-y-5">
-      <button
-        type="submit"
-        className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
-      >
-        登録
-      </button>
+                          {/* 入社日の下に「登録」ボタンと「戻る」ボタンを配置 */}
+                          <div className="flex flex-col items-center pt-6 space-y-5">
+                            <button
+                              type="submit"
+                              className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
+                            >
+                              登録
+                            </button>
 
-      {staffSaveMsg && (
-        <p className="text-xs text-[#4B8BF5] font-bold">{staffSaveMsg}</p>
-      )}
+                            {staffSaveMsg && (
+                              <p className="text-xs text-[#4B8BF5] font-bold">{staffSaveMsg}</p>
+                            )}
 
-      <div className="w-full flex justify-end pt-2">
-        <button
-          type="button"
-          onClick={() => setStaffSubView('list')}
-          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
-        >
-          <span>戻る</span>
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</form>
+                            <div className="w-full flex justify-end pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setStaffSubView('list')}
+                                className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
+                              >
+                                <span>戻る</span>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 )}
