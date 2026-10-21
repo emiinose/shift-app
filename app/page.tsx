@@ -1382,7 +1382,7 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-center pt-6">
+                        <div className="flex flex-col items-center pt-12">
       <button
         type="submit"
         className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
