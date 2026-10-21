@@ -1263,150 +1263,152 @@ export default function Home() {
                       </h2>
 
                       <form onSubmit={handleSaveStaffInfo} className="space-y-0 text-xs flex-1 flex flex-col justify-between pb-8">
-                        <div className="space-y-0">
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">お名前</label>
-                            <input
-                              type="text"
-                              placeholder="例）山田 太郎"
-                              value={staffForm.full_name}
-                              onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
-                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                            />
-                          </div>
+  <div className="space-y-0">
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">お名前</label>
+      <input
+        type="text"
+        placeholder="例）山田 太郎"
+        value={staffForm.full_name}
+        onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+      />
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
-                            <input
-                              type="text"
-                              placeholder="例）ヤマダ タロウ"
-                              value={staffForm.name_kana}
-                              onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
-                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                            />
-                          </div>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">お名前(フリガナ)</label>
+      <input
+        type="text"
+        placeholder="例）ヤマダ タロウ"
+        value={staffForm.name_kana}
+        onChange={(e) => setStaffForm({ ...staffForm, name_kana: e.target.value })}
+        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+      />
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">市区町村</label>
-                            <input
-                              type="text"
-                              placeholder="例）中川区"
-                              value={staffForm.address_city}
-                              onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
-                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                            />
-                          </div>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">市区町村</label>
+      <input
+        type="text"
+        placeholder="例）中川区"
+        value={staffForm.address_city}
+        onChange={(e) => setStaffForm({ ...staffForm, address_city: e.target.value })}
+        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+      />
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">在留資格</label>
-                            <input
-                              type="text"
-                              placeholder="例）家族滞在"
-                              value={staffForm.visa_status}
-                              onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
-                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                            />
-                          </div>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">在留資格</label>
+      <input
+        type="text"
+        placeholder="例）家族滞在"
+        value={staffForm.visa_status}
+        onChange={(e) => setStaffForm({ ...staffForm, visa_status: e.target.value })}
+        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+      />
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">誕生日</label>
-                            <div className="w-2/3 flex items-center gap-1">
-                              <select
-                                value={staffForm.birth_year}
-                                onChange={(e) => setStaffForm({ ...staffForm, birth_year: e.target.value })}
-                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-                              >
-                                {Array.from({ length: 80 }, (_, i) => 1950 + i).map(y => (
-                                  <option key={y} value={y}>{y}</option>
-                                ))}
-                              </select>
-                              <span className="text-gray-700">年</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">誕生日</label>
+      <div className="w-2/3 flex items-center gap-1">
+        <select
+          value={staffForm.birth_year}
+          onChange={(e) => setStaffForm({ ...staffForm, birth_year: e.target.value })}
+          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+        >
+          {Array.from({ length: 80 }, (_, i) => 1950 + i).map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <span className="text-gray-700">年</span>
 
-                              <select
-                                value={staffForm.birth_month}
-                                onChange={(e) => setStaffForm({ ...staffForm, birth_month: e.target.value })}
-                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-                              >
-                                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
-                                  <option key={m} value={m}>{m}</option>
-                                ))}
-                              </select>
-                              <span className="text-gray-700">月</span>
+        <select
+          value={staffForm.birth_month}
+          onChange={(e) => setStaffForm({ ...staffForm, birth_month: e.target.value })}
+          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+        >
+          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        <span className="text-gray-700">月</span>
 
-                              <select
-                                value={staffForm.birth_day}
-                                onChange={(e) => setStaffForm({ ...staffForm, birth_day: e.target.value })}
-                                className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
-                              >
-                                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
-                                  <option key={d} value={d}>{d}</option>
-                                ))}
-                              </select>
-                              <span className="text-gray-700">日</span>
-                            </div>
-                          </div>
+        <select
+          value={staffForm.birth_day}
+          onChange={(e) => setStaffForm({ ...staffForm, birth_day: e.target.value })}
+          className="bg-[#E5E5E5] px-2 py-1 rounded text-gray-800 text-xs focus:outline-none"
+        >
+          {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <span className="text-gray-700">日</span>
+      </div>
+    </div>
 
-                          <div className="py-2.5 border-b border-[#D6E6FE]">
-                            <div className="flex items-center justify-between">
-                              <label className="text-gray-700 font-normal w-1/3">電話番号</label>
-                              <input
-                                type="text"
-                                placeholder="例）000 0000 0000"
-                                value={staffForm.phone_number}
-                                onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
-                                className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                              />
-                            </div>
-                            <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
-                          </div>
+    <div className="py-2.5 border-b border-[#D6E6FE]">
+      <div className="flex items-center justify-between">
+        <label className="text-gray-700 font-normal w-1/3">電話番号</label>
+        <input
+          type="text"
+          placeholder="例）000 0000 0000"
+          value={staffForm.phone_number}
+          onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
+          className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+        />
+      </div>
+      <p className="text-right text-[10px] text-gray-500 pt-1">ハイフンなし</p>
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
-                            <input
-                              type="email"
-                              value={staffForm.email}
-                              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-                              className="w-2/3 bg-white border border-[#4B8BF5] px-3 py-1.5 rounded text-gray-800 focus:outline-none"
-                            />
-                          </div>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">メールアドレス</label>
+      <input
+        type="email"
+        value={staffForm.email}
+        onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+        className="w-2/3 bg-white border border-[#4B8BF5] px-3 py-1.5 rounded text-gray-800 focus:outline-none"
+      />
+    </div>
 
-                          <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
-                            <label className="text-gray-700 font-normal w-1/3">入社日</label>
-                            <input
-                              type="text"
-                              placeholder="例）1234年05月06日"
-                              value={staffForm.registration_date}
-                              onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
-                              className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
-                            />
-                          </div>
-                        </div>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#D6E6FE]">
+      <label className="text-gray-700 font-normal w-1/3">入社日</label>
+      <input
+        type="text"
+        placeholder="例）1234年05月06日"
+        value={staffForm.registration_date}
+        onChange={(e) => setStaffForm({ ...staffForm, registration_date: e.target.value })}
+        className="w-2/3 bg-[#E5E5E5] px-3 py-1.5 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#4B8BF5]"
+      />
+    </div>
 
-                        <div className="flex flex-col items-center pt-30">
+    {/* 入社日の下に「登録」ボタンと「戻る」ボタンを配置 */}
+    <div className="flex flex-col items-center pt-6 space-y-3">
       <button
         type="submit"
         className="bg-[#4B8BF5] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#3B72D0] transition-colors shadow-sm"
       >
         登録
       </button>
-      {staffSaveMsg && (
-        <p className="text-xs text-[#4B8BF5] font-bold mt-2">{staffSaveMsg}</p>
-      )}
-    </div>
-                      </form>
 
-                      <div className="flex justify-end pb-8">
-                        <button
-                          type="button"
-                          onClick={() => setStaffSubView('list')}
-                          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
-                        >
-                          <span>戻る</span>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      </div>
+      {staffSaveMsg && (
+        <p className="text-xs text-[#4B8BF5] font-bold">{staffSaveMsg}</p>
+      )}
+
+      <div className="w-full flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={() => setStaffSubView('list')}
+          className="flex items-center gap-1 text-[#4B8BF5] text-xs font-normal hover:underline"
+        >
+          <span>戻る</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
                     </div>
                   </div>
                 )}
