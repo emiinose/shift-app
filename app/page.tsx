@@ -804,18 +804,18 @@ export default function Home() {
           </div>
         </form>
 
-        <div className="flex justify-end pb-8">
-          <button
-            type="button"
-            onClick={() => setEmployeeSubView('list')}
-            className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
-          >
-            <span>戻る</span>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
+       <div className="flex justify-end pt-4 pb-8">
+      <button
+        type="button"
+        onClick={() => setEmployeeSubView('list')}
+        className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
+      >
+        <span>戻る</span>
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
       </div>
     )}
   </div>
