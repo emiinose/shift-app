@@ -656,160 +656,170 @@ export default function Home() {
 
             {/* 申請タブ表示 */}
             {adminTab === 'requests' && (
-              <div className="flex-1 bg-white flex flex-col relative">
-                {employeeSubView === 'list' && (
-                  <div className="flex-1 flex flex-col">
-                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
-                    <div className="px-6 pt-6 flex-1 flex flex-col">
-                      <h2 className="text-center text-[#4B8BF5] font-normal text-sm mb-6">
-                        休み申請
-                      </h2>
+             <div className="flex-1 bg-white flex flex-col relative">
+             {/* 共通ヘッダー（分岐の外側に1つだけ配置） */}
+               <div className="bg-[#4B8BF5] text-white p-4 pt-6 flex justify-between items-end flex-shrink-0">
+                <div>
+                 <h1 className="text-2xl font-bold tracking-tight">
+                  {year}年{month + 1}月
+                 </h1>
+                 </div>
+                  <button
+                     onClick={handleSignOut}
+                      className="text-xs text-white/80 hover:text-white underline"
+                       >
+                      ログアウト
+                   </button>
+                  </div>
 
-                      {myLeaveRequests.length === 0 ? (
-                        <p className="text-xs text-gray-400 py-12 text-center">
-                          申請履歴はありません
-                        </p>
-                      ) : (
-                        <div className="space-y-0 text-xs">
-                          {myLeaveRequests.map((req) => {
-                            const isApproved = req.status === 'approved'
-                            const dateFormatted = req.leave_date
+                     {/* サブビュー切替 */}
+                     {employeeSubView === 'list' && (
+                       <div className="px-6 pt-6 flex-1 flex flex-col">
+                        <h2 className="text-center text-[#4B8BF5] font-normal text-sm mb-6">
+                         休み申請
+                         </h2>
+
+                         {myLeaveRequests.length === 0 ? (
+                            <p className="text-xs text-gray-400 py-12 text-center">
+                            申請履歴はありません
+                            </p>
+                            ) : (
+                            <div className="space-y-0 text-xs">
+                              {myLeaveRequests.map((req) => {
+                              const isApproved = req.status === 'approved'
+                              const dateFormatted = req.leave_date
                               ? req.leave_date.replace(/-/g, '/')
                               : ''
 
-                            return (
-                              <div
-                                key={req.id}
-                                className="flex items-center justify-between py-3.5 border-b border-[#D6E6FE]"
-                              >
-                                <span className="text-[#4B8BF5] w-24 font-normal">
-                                  {dateFormatted}
-                                </span>
-                                <span className="text-gray-800 flex-1 px-2 font-normal">
-                                  現場：{req.site_name || '佐川'}
-                                </span>
-                                <div className="w-20 flex justify-end">
-                                  {isApproved ? (
-                                    <span className="inline-block text-center w-16 py-1 border border-[#4B8BF5] text-[#4B8BF5] rounded-md text-[11px] font-normal">
+                               return (
+                                <div
+                                 key={req.id}
+                                 className="flex items-center justify-between py-3.5 border-b border-[#D6E6FE]"
+                                 >
+                                  <span className="text-[#4B8BF5] w-24 font-normal">
+                                   {dateFormatted}
+                                  </span>
+                                 <span className="text-gray-800 flex-1 px-2 font-normal">
+                                   現場：{req.site_name || '佐川'}
+                                 </span>
+                                  <div className="w-20 flex justify-end">
+                                   {isApproved ? (
+                                     <span className="inline-block text-center w-16 py-1 border border-[#4B8BF5] text-[#4B8BF5] rounded-md text-[11px] font-normal">
                                       許可
                                     </span>
-                                  ) : (
+                                    ) : (
                                     <span className="inline-block text-center w-16 py-1 bg-[#4B8BF5] text-white rounded-md text-[11px] font-normal shadow-sm">
                                       許可待ち
                                     </span>
-                                  )}
+                                   )}
+                                   </div>
+                                  </div>
+                                    )
+                                   })}
                                 </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                               )}
 
-                      <div className="absolute right-8 bottom-24">
-                        <button
-                          onClick={() => setEmployeeSubView('form')}
-                          className="w-14 h-14 bg-[#3B72D0] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#2B5290] transition-colors"
-                        >
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                              <div className="absolute right-8 bottom-24">
+                                <button
+                                  onClick={() => setEmployeeSubView('form')}
+                                  className="w-14 h-14 bg-[#3B72D0] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#2B5290] transition-colors"
+                                  >
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                  </svg>
+                               </button>
+                             </div>
+                           </div>
+                         )}
 
-                {employeeSubView === 'form' && (
-                  <div className="flex-1 flex flex-col">
-                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
-                    <div className="px-6 pt-8 flex-1 flex flex-col justify-between">
-                      <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
-                        <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
-                          <div className="flex items-center justify-between">
-                            <label className="text-gray-700 w-1/3 font-normal">
-                              お名前(フリガナ)
-                            </label>
-                            <input
-                              type="text"
-                              disabled
-                              value={leaveForm.nameKana || userProfile?.name_kana || ''}
-                              className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed font-normal"
-                            />
-                          </div>
-                           
-                          <div className="flex items-center justify-between">
-                            <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
-                            <input
-                              type="date"
-                              required
-                              value={leaveForm.leaveDate}
-                              onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
-                              className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
-                            />
-                          </div>
+    {employeeSubView === 'form' && (
+      <div className="px-6 pt-8 flex-1 flex flex-col justify-between">
+        <form onSubmit={handleSubmitLeaveRequest} className="space-y-6">
+          <div className="border border-[#4B8BF5] rounded-xl p-5 space-y-4 text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-gray-700 w-1/3 font-normal">
+                お名前(フリガナ)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={leaveForm.nameKana || userProfile?.name_kana || ''}
+                className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-500 bg-gray-100 rounded focus:outline-none cursor-not-allowed font-normal"
+              />
+            </div>
+             
+            <div className="flex items-center justify-between">
+              <label className="text-gray-700 w-1/3 font-normal">休み希望日</label>
+              <input
+                type="date"
+                required
+                value={leaveForm.leaveDate}
+                onChange={(e) => setLeaveForm({ ...leaveForm, leaveDate: e.target.value })}
+                className="w-2/3 border border-[#4B8BF5] px-2 py-1 text-gray-800 rounded focus:outline-none bg-white font-normal"
+              />
+            </div>
 
-                          <div className="flex items-center justify-between">
-                            <label className="text-gray-700 w-1/3 font-normal">現場</label>
-                            <div className="w-2/3 relative">
-                              <select
-                                value={leaveForm.siteName}
-                                onChange={(e) => setLeaveForm({ ...leaveForm, siteName: e.target.value })}
-                                className="w-full bg-[#E0E0E0] text-gray-700 px-3 py-1.5 rounded appearance-none focus:outline-none pr-8 font-normal"
-                              >
-                                {presetSites.map((site) => (
-                                  <option key={site} value={site}>
-                                    {site}
-                                  </option>
-                                ))}
-                              </select>
-                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start justify-between">
-                            <label className="text-gray-700 w-1/3 font-normal pt-1">理由</label>
-                            <textarea
-                              rows={4}
-                              value={leaveForm.reason}
-                              onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                              placeholder="例）体調不良"
-                              className="w-2/3 bg-[#E0E0E0] text-gray-700 p-2.5 rounded focus:outline-none placeholder-gray-500 resize-none font-normal"
-                            ></textarea>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-center pt-2">
-                          <button
-                            type="submit"
-                            disabled={leaveSubmitting}
-                            className="bg-[#3B72D0] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#2B5290] transition-colors shadow-sm disabled:opacity-50"
-                          >
-                            {leaveSubmitting ? '送信中...' : '送信'}
-                          </button>
-                        </div>
-                      </form>
-
-                      <div className="flex justify-end pb-8">
-                        <button
-                          type="button"
-                          onClick={() => setEmployeeSubView('list')}
-                          className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
-                        >
-                          <span>戻る</span>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            <div className="flex items-center justify-between">
+              <label className="text-gray-700 w-1/3 font-normal">現場</label>
+              <div className="w-2/3 relative">
+                <select
+                  value={leaveForm.siteName}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, siteName: e.target.value })}
+                  className="w-full bg-[#E0E0E0] text-gray-700 px-3 py-1.5 rounded appearance-none focus:outline-none pr-8 font-normal"
+                >
+                  {presetSites.map((site) => (
+                    <option key={site} value={site}>
+                      {site}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
-            )}
+            </div>
+
+            <div className="flex items-start justify-between">
+              <label className="text-gray-700 w-1/3 font-normal pt-1">理由</label>
+              <textarea
+                rows={4}
+                value={leaveForm.reason}
+                onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                placeholder="例）体調不良"
+                className="w-2/3 bg-[#E0E0E0] text-gray-700 p-2.5 rounded focus:outline-none placeholder-gray-500 resize-none font-normal"
+              ></textarea>
+            </div>
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <button
+              type="submit"
+              disabled={leaveSubmitting}
+              className="bg-[#3B72D0] text-white text-xs px-10 py-2 rounded-full font-medium hover:bg-[#2B5290] transition-colors shadow-sm disabled:opacity-50"
+            >
+              {leaveSubmitting ? '送信中...' : '送信'}
+            </button>
+          </div>
+        </form>
+
+        <div className="flex justify-end pb-8">
+          <button
+            type="button"
+            onClick={() => setEmployeeSubView('list')}
+            className="flex items-center gap-1 text-[#3B72D0] text-xs font-normal hover:underline"
+          >
+            <span>戻る</span>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
             {/* スタッフ用フッター */}
             <div className="fixed bottom-0 w-full max-w-[430px] bg-[#4B8BF5] text-white grid grid-cols-2 text-center text-xs border-t border-white/20 z-10">
