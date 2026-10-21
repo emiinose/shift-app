@@ -1257,7 +1257,6 @@ export default function Home() {
 
                 {(staffSubView === 'edit' || staffSubView === 'add') && (
                   <div className="flex-1 bg-white flex flex-col">
-                    <div className="bg-[#4B8BF5] h-32 w-full flex-shrink-0"></div>
                     <div className="px-6 pt-6 flex-1 flex flex-col">
                       <h2 className="text-center text-[#4B8BF5] font-medium text-base mb-6">
                         スタッフ情報{staffSubView === 'add' ? '追加' : ''}
