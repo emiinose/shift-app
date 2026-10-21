@@ -1459,7 +1459,7 @@ export default function Home() {
 
                         <div className="space-y-3 text-gray-800">
                           <div className="flex justify-between border-b border-gray-100 pb-1.5">
-                            <span className="text-gray-500 w-1/3">お名前(フリガナ)</span>
+                            <span className="text-gray-500 w-1/3">お名前</span>
                             <span className="font-medium w-2/3 text-right">
                               {applicant?.name_kana || applicant?.full_name || '-'}
                             </span>
