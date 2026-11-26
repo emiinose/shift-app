@@ -630,38 +630,43 @@ export default function Home() {
                       className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
                     >
                       {calendarDays.map((item, idx) => {
+                        const now = new Date()
+                        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                        const isToday = item.dateStr === todayStr
                         const isSelected = selectedDate === item.dateStr
                         const isHolidayDate = isHoliday(item.dateStr)
 
                         const hasMyShift = shifts.some(
-                          (s) => s.work_date === item.dateStr && s.user_id === session.user.id
-                        )
+                         (s) => s.work_date === item.dateStr && s.user_id === session.user.id
+                          )
 
                         let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
-                        if (item.isCurrentMonth) {
+                          if (item.isCurrentMonth) {
                           if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
                           if (item.dayOfWeek === 6 || isHolidayDate) textColor = 'text-red-500'
-                        }
+                         }
 
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedDate(item.dateStr)}
-                            className="h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1 relative hover:bg-gray-50 transition"
-                          >
-                            <span
-                              className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-                                isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-                              }`}
-                            >
-                              {item.day}
-                            </span>
+                           return (
+                             <button
+                              key={idx}
+                               onClick={() => setSelectedDate(item.dateStr)}
+                                className={`h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1 relative transition ${
+                                isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                               }`}
+                             >
+                               <span
+                                 className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                                  isToday ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                                  }`}
+                                >
+                                {item.day}
+                              </span>
 
-                            {hasMyShift && (
-                              <span className="text-yellow-400 text-xs leading-none mt-0.5">★</span>
-                            )}
-                          </button>
-                        )
+                                {hasMyShift && (
+                                    <span className="text-yellow-400 text-xs leading-none mt-0.5">★</span>
+                                  )}
+                                </button>
+                         )
                       })}
                     </motion.div>
                   </AnimatePresence>
@@ -962,38 +967,40 @@ export default function Home() {
                     }}
                     className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
                   >
-                    {calendarDays.map((item, idx) => {
-                      const now = new Date()
-                      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-                      const isToday = item.dateStr === todayStr
-                      const isSelected = selectedDate === item.dateStr
-                      const isHolidayDate = isHoliday(item.dateStr)
+                   {calendarDays.map((item, idx) => {
+                    const now = new Date()
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                    const isToday = item.dateStr === todayStr
+                    const isSelected = selectedDate === item.dateStr
+                    const isHolidayDate = isHoliday(item.dateStr)
 
                       let textColor = item.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'
                       if (item.isCurrentMonth) {
-                        if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
-                        if (item.dayOfWeek === 6 || isHolidayDate) textColor = 'text-red-500'
-                      }
+                      if (item.dayOfWeek === 5) textColor = 'text-[#4B8BF5]'
+                      if (item.dayOfWeek === 6 || isHolidayDate) textColor = 'text-red-500'
+                       }
 
                       return (
                         <button
-                          key={idx}
-                          onClick={() => {
-                            setSelectedDate(item.dateStr)
-                            if (adminTab === 'detail') setAdminTab('overview')
+                         key={idx}
+                         onClick={() => {
+                         setSelectedDate(item.dateStr)
+                         if (adminTab === 'detail') setAdminTab('overview')
                           }}
-                          className={`h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative transition ${
-                            isToday ? 'bg-blue-50' : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-                            isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-                          }`}>
-                            {item.day}
-                          </span>
-                        </button>
-                      )
-                    })}
+                         className={`h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative transition ${
+                         isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                         }`}
+                         >
+                        <span
+                         className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                           isToday ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                           }`}
+                         >
+                         {item.day}
+                         </span>
+                       </button>
+                        )
+                     })}
                   </motion.div>
                 </AnimatePresence>
               </div>
