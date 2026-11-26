@@ -4,18 +4,17 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
+import * as holidayJp from 'holiday-jp'
+
 
 // 日本の祝日データ
-const HOLIDAYS = [
-  '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', 
-  '2026-03-20', '2026-04-29', '2026-05-03', '2026-05-04', 
-  '2026-05-05', '2026-07-20', '2026-08-11', '2026-09-21', 
-  '2026-09-22', '2026-09-23', '2026-10-12', '2026-11-03', 
-  '2026-11-23',
-]
-
 const isHoliday = (dateStr: string) => {
-  return HOLIDAYS.includes(dateStr)
+  // dateStr は 'YYYY-MM-DD' 形式想定（例: '2026-11-23'）
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (!y || !m || !d) return false
+
+  const targetDate = new Date(y, m - 1, d)
+  return holidayJp.between(targetDate, targetDate).length > 0
 }
 
 export default function Home() {
