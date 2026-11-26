@@ -963,6 +963,9 @@ export default function Home() {
                     className="grid grid-cols-7 w-full absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
                   >
                     {calendarDays.map((item, idx) => {
+                      const now = new Date()
+                      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                      const isToday = item.dateStr === todayStr
                       const isSelected = selectedDate === item.dateStr
                       const isHolidayDate = isHoliday(item.dateStr)
 
@@ -975,20 +978,20 @@ export default function Home() {
                       return (
                         <button
                           key={idx}
-                           onClick={() => {
-                           setSelectedDate(item.dateStr)
-                           if (adminTab === 'detail') setAdminTab('overview')
+                          onClick={() => {
+                            setSelectedDate(item.dateStr)
+                            if (adminTab === 'detail') setAdminTab('overview')
                           }}
-                           className={`h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative transition ${
-                           isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
-                            }`}
-                             >
-                            <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
-                             isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
-                              }`}>
-                              {item.day}
-                              </span>
-                         </button>
+                          className={`h-12 border-r border-b border-gray-200 flex flex-col items-center justify-start pt-1.5 relative transition ${
+                            isToday ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className={`text-xs font-medium leading-none w-6 h-6 flex items-center justify-center ${
+                            isSelected ? 'bg-[#4B8BF5] text-white rounded-full font-bold' : textColor
+                          }`}>
+                            {item.day}
+                          </span>
+                        </button>
                       )
                     })}
                   </motion.div>
